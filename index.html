@@ -546,7 +546,9 @@ const makeSRT=()=>{let n=1,o='';FILM.scenes.forEach((s,i)=>{const tx=s.narasi||'
 $('bt').onclick=()=>{const o=makeSRT(); saveF(new Blob([o],{type:'text/plain'}),'subtitle.srt');st('Subtitle .srt diunduh'+(BUF.some(Boolean)?'.':' (waktu masih perkiraan; siapkan suara dulu agar tepat).'))};
 
 /* ---------- v8: upload langsung ke YouTube (Data API v3, OAuth GIS, resumable upload) ---------- */
-CFG.yt=Object.assign({cid:'',t:'',d:'Dibuat dengan Studio Film.',ch:1,g:'',p:'private',k:'1',f:'false',cp:0},CFG.yt||{});
+const YT_CID='447290350576-qo6qeikuere50aeedvb2mc53q2ssnk3k.apps.googleusercontent.com';
+CFG.yt=Object.assign({cid:YT_CID,t:'',d:'Dibuat dengan Studio Film.',ch:1,g:'',p:'private',k:'1',f:'false',cp:0},CFG.yt||{});
+if(!CFG.yt.cid)CFG.yt.cid=YT_CID;
 const YF={cid:'yc',t:'yt',d:'yd',g:'yg',p:'yp',k:'yk',f:'yf'};
 const ytFill=()=>{for(const k in YF)$(YF[k]).value=CFG.yt[k];$('ych').checked=!!CFG.yt.ch;$('ycp').checked=!!CFG.yt.cp};ytFill();
 const ytSave=()=>{for(const k in YF)CFG.yt[k]=$(YF[k]).value.trim?$(YF[k]).value.trim():$(YF[k]).value;CFG.yt.d=$('yd').value;CFG.yt.ch=$('ych').checked?1:0;CFG.yt.cp=$('ycp').checked?1:0;svCfg()};
