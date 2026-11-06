@@ -119,13 +119,22 @@ body[data-tab=watch] #top{display:none}
 <div class="r"><button id="cpm">Salin judul, deskripsi &amp; tag</button></div></div>
 <div class="card"><h3>Thumbnail</h3>
 <button id="gth" class="p" data-i="ai">Buat thumbnail dengan AI</button>
-<div class="hint">AI memotret beberapa adegan film, memilih yang paling menarik untuk dijadikan thumbnail, lalu menambah teks pendek bila perlu. Dibuat otomatis saat upload jika belum ada.</div>
+<div class="hint">AI memotret beberapa adegan, memilih yang paling menarik, lalu aplikasi mengecilkan dan menggeser tokoh agar ada ruang kosong di satu sisi untuk teks pendek (maks. 3 kata). Jika tidak ada ruang tanpa menutupi tokoh, teks otomatis dilewati. Dibuat otomatis saat upload jika belum ada.</div>
 <img id="thi" alt="Thumbnail" style="width:100%;border-radius:10px;margin-top:10px;display:none;aspect-ratio:16/9;object-fit:cover;background:#000">
 <div id="thn" class="hint"></div>
 <label>Teks di thumbnail (kosongkan = tanpa teks) <span class="cnt" id="ct4"></span></label><input id="tht" maxlength="40" style="width:100%">
 <div class="r"><label>Adegan <input id="ths" type="number" min="1" placeholder="AI" style="width:72px"></label><button id="thr">Terapkan teks / adegan</button><button id="thd">Unduh JPG</button></div>
 <div class="r"><label><input type="checkbox" id="thx"> Biarkan AI menambah teks</label></div>
+<div class="r"><label>Posisi teks <select id="thp"><option value="auto">Otomatis (cari ruang kosong)</option><option value="kiri">Kiri</option><option value="kanan">Kanan</option></select></label></div>
 <div class="r"><label><input type="checkbox" id="thu"> Pasang thumbnail saat upload</label></div></div>
+<div class="card"><h3>Dubbing Inggris (otomatis)</h3>
+<button id="dgo" class="p" data-i="mic">Buat dubbing Inggris dengan AI</button>
+<div class="hint">AI menerjemahkan narasi ke bahasa Inggris, membuat suara Inggris dengan suara narator yang Anda pilih, lalu menyesuaikan tiap adegan agar pas dengan durasi video (narasi + efek suara, panjang sama dengan video). Hasilnya file audio dan subtitle Inggris. Video asli tidak diubah. Suara AI Indonesia harus sudah disiapkan lebih dulu.</div>
+<div id="dn" class="hint">Belum dibuat.</div>
+<div class="r"><button id="dda">Unduh audio (.m4a)</button><button id="ddw">Unduh WAV</button><button id="dds">Unduh subtitle Inggris</button></div>
+<div class="r"><label><input type="checkbox" id="dau"> Buat dubbing otomatis saat upload</label></div>
+<div class="r"><label><input type="checkbox" id="dcp"> Unggah subtitle Inggris ke YouTube saat upload</label></div>
+<div class="hint">Memasang audio di YouTube: buka YouTube Studio, menu Subtitel, pilih video, Tambah bahasa, pilih English, lalu di kolom Audio pilih Tambah dan unggah file audio dari sini. Langkah ini manual karena YouTube tidak menyediakan unggah trek audio lewat API, setahu saya.</div></div>
 <div class="card"><h3>Jadwal tayang</h3>
 <select id="ysm" style="width:100%"><option value="now">Langsung (sesuai privasi di atas)</option><option value="man">Jadwalkan (saya pilih jam)</option><option value="ai">Jadwalkan (Gemini memilih jam)</option></select>
 <div id="ysw"><label>Tanggal &amp; jam tayang (<span id="ytz"></span>)</label><input id="ysd" type="datetime-local" style="width:100%">
@@ -664,7 +673,7 @@ $('fi').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)ret
   if(p.meta){['t','d','g','k'].forEach(x=>{if(p.meta[x])CFG.yt[x]=p.meta[x]});CFG.yt.man=1;ytFill()}$('js').value=JSON.stringify(p.film,null,1);if(p.ide){STO.ide=p.ide;$('s1').value=JSON.stringify(p.ide,null,1)}if(p.kerangka){STO.beats=p.kerangka;$('s2').value=JSON.stringify(p.kerangka,null,1)}svS();$('ba').click();if(!p.meta)setTimeout(autoAll,100);st('Paket diimpor: '+p.film.scenes.length+' adegan. Tekan Siapkan suara untuk narasi.')}
  catch(er){st('Gagal impor: '+er.message)}};
 const srtT=s=>{const m=Math.round(s*1000),p=(n,l)=>String(n).padStart(l,'0');return p(Math.floor(m/36e5),2)+':'+p(Math.floor(m%36e5/6e4),2)+':'+p(Math.floor(m%6e4/1e3),2)+','+p(m%1e3,3)};
-const makeSRT=()=>{let n=1,o='';FILM.scenes.forEach((s,i)=>{const tx=s.narasi||'';if(!tx)return;const eb=EB[i]||BUF[i],du=eb?eb.duration:D[i]*.8,ch=caps(tx),tl=ch.reduce((a,c)=>a+c.length,0);let acc=0;
+const makeSRT=(TX,BB)=>{let n=1,o='';FILM.scenes.forEach((s,i)=>{const tx=TX?(TX[i]||''):(s.narasi||'');if(!tx)return;const eb=BB?BB[i]:(EB[i]||BUF[i]),du=eb?eb.duration:D[i]*.8,ch=caps(tx),tl=ch.reduce((a,c)=>a+c.length,0);let acc=0;
   ch.forEach(c=>{o+=(n++)+'\n'+srtT(ST[i]+.2+acc/tl*du)+' --> '+srtT(ST[i]+.2+(acc+c.length)/tl*du)+'\n'+c+'\n\n';acc+=c.length})});
  return o};
 $('bt').onclick=()=>{const o=makeSRT(); saveF(new Blob([o],{type:'text/plain'}),'subtitle.srt');st('Subtitle .srt diunduh'+(BUF.some(Boolean)?'.':' (waktu masih perkiraan; siapkan suara dulu agar tepat).'))};
@@ -708,25 +717,27 @@ async function ytUpload(blob,tok,meta){
   if(q.status===200||q.status===201)return JSON.parse(q.responseText);
   if(q.status===308){const r=q.getResponseHeader('Range'),m=r&&/bytes=0-(\d+)/.exec(r);off=m?+m[1]+1:0}}
  throw new Error('Upload selesai tanpa respons dari YouTube.')}
-async function ytCaption(id,tok){
- const srt=makeSRT();if(!srt.trim())throw new Error('tidak ada narasi untuk subtitle');
- const B='sf'+Date.now(),md=JSON.stringify({snippet:{videoId:id,language:'id',name:'Indonesia',isDraft:false}});
+async function ytCaption(id,tok,lg,nm,s0){
+ const srt=s0||makeSRT();if(!srt.trim())throw new Error('tidak ada narasi untuk subtitle');
+ const B='sf'+Date.now(),md=JSON.stringify({snippet:{videoId:id,language:lg||'id',name:nm||'Indonesia',isDraft:false}});
  const body=new Blob(['--'+B+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+md+'\r\n--'+B+'\r\nContent-Type: application/octet-stream\r\n\r\n',srt,'\r\n--'+B+'--']);
  const x=await ytReq('POST','https://www.googleapis.com/upload/youtube/v3/captions?uploadType=multipart&part=snippet',{h:{'Authorization':'Bearer '+tok,'Content-Type':'multipart/related; boundary='+B},b:body});
  if(x.status!==200)throw new Error(apiErr(x))}
 $('yb').onclick=async()=>{if(busy)return;ytSave();showTab('up');yMsg('');yPr(null);
- const wantCap=!!CFG.yt.cp,scope=SC_UP+(wantCap?' '+SC_CAP:'');
+ const wantCap=!!CFG.yt.cp,wantEn=!!CFG.dub.cp&&(!!CFG.dub.auto||dubReady()),scope=SC_UP+((wantCap||wantEn)?' '+SC_CAP:'');
  $('yb').disabled=true;
  try{
   await ytToken(scope,YTOK?'':'consent');   /* login dulu, selagi ada sentuhan pengguna (anti blokir popup) */
   if(!BUF.some(Boolean)&&!confirm('Suara narasi belum disiapkan, video akan tanpa narasi. Lanjut?'))throw new Error('Dibatalkan.');
   await ensureMeta();if(CFG.yt.sm==='ai')await ensureSchedule();ytSave();ytMeta();try{await ensureThumb()}catch(e){st('Thumbnail dilewati: '+(e.message||e))}
+  if(CFG.dub.auto&&!dubReady()){try{await dubAll()}catch(e){}}
   const r=await getMP4();
   let tok;try{tok=await ytToken(scope,'')}catch(e){throw new Error(e.message+' Hasil ekspor tersimpan di memori; tekan Upload lagi tanpa render ulang.')}
   if(CFG.yt.sm==='ai')await ensureSchedule();yPr(0);const res=await ytUpload(r.blob,tok,ytMeta()),id=res.id;
   let note='';
   if(wantCap){try{await ytCaption(id,tok);note=' Subtitle terunggah.'}catch(e){note=' Subtitle gagal: '+e.message}}
   if(THM.data&&CFG.th.use){try{await ytThumb(id,tok);note+=' Thumbnail terpasang.'}catch(e){note+=' Thumbnail gagal: '+e.message}}
+  if(dubReady()){if(wantEn){try{await ytCaption(id,tok,'en','English',makeSRT(DUB.tx,DUB.eb));note+=' Subtitle Inggris terunggah.'}catch(e){note+=' Subtitle Inggris gagal: '+e.message}}note+=' Audio dubbing Inggris siap: unduh di kartu Dubbing Inggris lalu pasang lewat YouTube Studio.'}
   yPr(100);const u='https://youtu.be/'+id;
   yMsg('Berhasil diunggah ('+(ytMeta(true).status.publishAt?'<b>dijadwalkan '+fmtLong(new Date(ytMeta(true).status.publishAt))+'</b>':'<b>'+CFG.yt.p+'</b>')+'): <a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>.'+note+(CFG.yt.p!=='private'?' Jika video terkunci Pribadi, proyek Google Anda belum lolos audit YouTube.':''));
   st('Selesai: video di YouTube.')
@@ -770,7 +781,7 @@ function renderInfo(){const m=ytMeta(true),sn=m.snippet,pub=m.status.publishAt,t
 $('vdb').onclick=()=>{const d=$('vd');d.hidden=!d.hidden;$('vdb').querySelector('b').textContent=d.hidden?'…selengkapnya':' sembunyikan'};
 $('chi').value=CFG.chn||'';$('chi').onchange=()=>{CFG.chn=$('chi').value.trim();svCfg();renderInfo()};
 /* ----- Gemini: judul, deskripsi, tag ----- */
-const SYSM='Kamu pengelola kanal YouTube berbahasa Indonesia yang ahli SEO. Tulis metadata untuk film animasi stikman berdurasi panjang untuk penonton umum/keluarga di Indonesia. Tentukan dulu satu kata kunci utama (frasa yang realistis dicari orang, mis. "sejarah penemuan api") dan 2-3 kata kunci pendukung. Judul: maksimal 60 karakter agar tidak terpotong, kata kunci utama di paruh depan, memancing rasa ingin tahu tetapi jujur sesuai isi (tanpa clickbait menyesatkan, tanpa huruf kapital semua, tanpa tanda < atau >). Deskripsi: dua baris pertama (maksimal 150 karakter) memuat kata kunci utama dan menjadi kalimat pembuka yang menarik karena itulah yang terlihat di hasil pencarian; lanjutkan 1-2 paragraf ringkasan tanpa membocorkan akhir cerita, memakai kata kunci utama dan pendukung secara alami (jangan dijejalkan); satu kalimat ajakan menonton, berlangganan, dan berkomentar; jika kisah berlatar sejarah atau peristiwa nyata, satu kalimat bahwa ini dramatisasi fiksi dan bukan fakta pasti; baris terakhir 3 sampai 5 hashtag (hashtag pertama = kata kunci utama tanpa spasi). Jangan menulis penanda waktu/bab (ditambahkan otomatis). Tag: 15 sampai 25 item, tag pertama = kata kunci utama persis, lalu campuran frasa panjang dan pendek, bahasa Indonesia dengan sedikit Inggris, tanpa tanda #, relevan, tidak menyesatkan. teks_thumbnail: maksimal 4 kata huruf kapital yang melengkapi judul (bukan menyalinnya), atau kosong jika tidak perlu. Kategori YouTube: 1 Film & Animasi, 27 Pendidikan, 24 Hiburan, 22 Orang & Blog.';
+const SYSM='Kamu pengelola kanal YouTube berbahasa Indonesia yang ahli SEO. Tulis metadata untuk film animasi stikman berdurasi panjang untuk penonton umum/keluarga di Indonesia. Tentukan dulu satu kata kunci utama (frasa yang realistis dicari orang, mis. "sejarah penemuan api") dan 2-3 kata kunci pendukung. Judul: maksimal 60 karakter agar tidak terpotong, kata kunci utama di paruh depan, memancing rasa ingin tahu tetapi jujur sesuai isi (tanpa clickbait menyesatkan, tanpa huruf kapital semua, tanpa tanda < atau >). Deskripsi: dua baris pertama (maksimal 150 karakter) memuat kata kunci utama dan menjadi kalimat pembuka yang menarik karena itulah yang terlihat di hasil pencarian; lanjutkan 1-2 paragraf ringkasan tanpa membocorkan akhir cerita, memakai kata kunci utama dan pendukung secara alami (jangan dijejalkan); satu kalimat ajakan menonton, berlangganan, dan berkomentar; jika kisah berlatar sejarah atau peristiwa nyata, satu kalimat bahwa ini dramatisasi fiksi dan bukan fakta pasti; baris terakhir 3 sampai 5 hashtag (hashtag pertama = kata kunci utama tanpa spasi). Jangan menulis penanda waktu/bab (ditambahkan otomatis). Tag: 15 sampai 25 item, tag pertama = kata kunci utama persis, lalu campuran frasa panjang dan pendek, bahasa Indonesia dengan sedikit Inggris, tanpa tanda #, relevan, tidak menyesatkan. teks_thumbnail: maksimal 3 kata huruf kapital yang melengkapi judul (bukan menyalinnya), atau kosong jika tidak perlu. Kategori YouTube: 1 Film & Animasi, 27 Pendidikan, 24 Hiburan, 22 Orang & Blog.';
 function metaCtx(){const sc=FILM.scenes,id=STO.ide||{},n=sc.length,step=Math.max(1,Math.floor(n/12)),pk=[];for(let i=0;i<n;i+=step)pk.push(i);if(pk[pk.length-1]!=n-1)pk.push(n-1);
  const ring=pk.map(i=>'['+fm(ST[i]||0)+'] '+(sc[i].narasi||'').slice(0,230)).join('\n'),cast=[...new Set(sc.flatMap(s=>(s.actors||[]).map(a=>a.id)))].slice(0,10).join(', '),bab=sc.map((s,i)=>s.judul?fm(ST[i])+' '+s.judul:'').filter(Boolean).join('; ');
  return'Judul kerja: '+(FILM.judul||'-')+'\nLogline: '+(id.logline||'-')+'\nTema: '+(id.tema||'-')+'\nNada: '+(id.nada||'-')+'\nTokoh: '+(((id.tokoh||[]).map(t=>t.nama||t.id).join(', '))||cast)+'\nDurasi: '+fm(TOT)+' ('+n+' adegan)\nBab: '+(bab||'-')+'\nCuplikan narasi:\n'+ring}
@@ -780,7 +791,7 @@ async function genMeta(){if(METAB)return false;if(!CFG.ks.length){st('Isi Gemini
  try{const r=await gem(CFG.sm,SYSM,metaCtx()+'\n\nBalas JSON: {"kata_kunci":"","judul":"","deskripsi":"","tag":["..."],"teks_thumbnail":"","kategori":"1"}',true),t=cleanT(r.judul).slice(0,100),g=fitTags(Array.isArray(r.tag)?r.tag:String(r.tag||'').split(','));
   let d=String(r.deskripsi||'').replace(/[<>]/g,'').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim().slice(0,4000);if(!t||!d)throw new Error('jawaban Gemini kurang lengkap');
   if(!/#[^\s#]/.test(d)){const hs=g.slice(0,4).map(x=>'#'+x.replace(/[^\p{L}\p{N}]+/gu,'')).filter(x=>x.length>2);if(hs.length)d+='\n\n'+hs.join(' ')}
-  CFG.yt.t=t;CFG.yt.d=d;CFG.yt.g=g.join(', ');CFG.yt.kw=cleanT(r.kata_kunci).slice(0,60);CFG.yt.thx=cleanT(r.teks_thumbnail).split(/\s+/).slice(0,4).join(' ').slice(0,30);if(['1','27','24','22'].includes(String(r.kategori)))CFG.yt.k=String(r.kategori);CFG.yt.man=0;svCfg();ytFill();renderInfo();st('Judul, deskripsi, dan tag siap. Periksa di tab Upload, ubah bila perlu.');return true}
+  CFG.yt.t=t;CFG.yt.d=d;CFG.yt.g=g.join(', ');CFG.yt.kw=cleanT(r.kata_kunci).slice(0,60);CFG.yt.thx=cleanT(r.teks_thumbnail).split(/\s+/).slice(0,3).join(' ').slice(0,30);if(['1','27','24','22'].includes(String(r.kategori)))CFG.yt.k=String(r.kategori);CFG.yt.man=0;svCfg();ytFill();renderInfo();st('Judul, deskripsi, dan tag siap. Periksa di tab Upload, ubah bila perlu.');return true}
  catch(e){st('Gagal membuat judul/deskripsi: '+(e.message||e));return false}finally{METAB=false;$('gm').disabled=$('gm2').disabled=false}}
 const autoMeta=()=>{if(CFG.ks.length&&!CFG.yt.man&&!busy)genMeta()};
 async function ensureMeta(){const c=CFG.yt;if((!c.t||!c.d||c.d===DEFD0)&&CFG.ks.length)await genMeta()}
@@ -821,24 +832,52 @@ async function grabFrames(list,W,H){if(busy)throw new Error('Sedang sibuk.');if(
  try{setRes(1280,720);for(const it of list){CAMO=it.cam||null;cur=-1;lastT=-1;frame(it.t,it.t);const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(cv,0,0,W,H);res.push(c);await new Promise(z=>setTimeout(z,0))}}
  finally{NOUI=0;CAMO=null;setRes(W0,H0);busy=false;cur=-1;lastT=-1;dirty=1}return res}
 const sceneT=i=>ST[i]+D[i]*.55;
-function pickScenes(n){const N=FILM.scenes.length,ok=[];FILM.scenes.forEach((s,i)=>{if((s.actors||[]).length)ok.push(i)});const pool=ok.length>=n?ok:FILM.scenes.map((_,i)=>i),o=new Set();for(let k=0;k<n;k++)o.add(pool[Math.min(pool.length-1,Math.floor((k+.5)/n*pool.length))]);return[...o]}
+const THD=new Set(['sorak','takut','tunjuk','pukul','percik','kaget','tertawa','terpental','bersin','lambai','peluk','tiup','intip','makan']);
+/* pilih kandidat per "ember" waktu; skor tinggi = 1-3 tokoh, gerak ekspresif, ada api */
+function pickScenes(n){const sc=i=>{const s=FILM.scenes[i],a=s.actors||[],k=a.length,fire=(s.props||[]).some(q=>q.a=='api');return(k>=1&&k<=3?3:k?1:0)+(a.some(q=>THD.has(q.anim))?2:0)+(fire?1:0)+(s.env=='malam'&&!fire?-1:0)};
+ const ok=[];FILM.scenes.forEach((s,i)=>{if((s.actors||[]).length)ok.push(i)});const pool=ok.length>=n?ok:FILM.scenes.map((_,i)=>i),o=[];
+ for(let k=0;k<n;k++){const a=Math.floor(k/n*pool.length),b=Math.max(a+1,Math.floor((k+1)/n*pool.length));let best=pool[Math.min(a,pool.length-1)],bs=-9;for(let q=a;q<b&&q<pool.length;q++){const v=sc(pool[q]);if(v>bs){bs=v;best=pool[q]}}if(o.indexOf(best)<0)o.push(best)}return o}
 async function gemV(model,sys,parts){const j=await withKey('ks',async key=>{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts}],generationConfig:{temperature:.5,responseMimeType:'application/json'}})});
   const x=await r.json().catch(()=>({}));if(!r.ok){const e=new Error((x.error&&x.error.message)||'HTTP '+r.status);e.status=r.status;throw e}return x});
  const txt=((((j.candidates||[])[0]||{}).content||{}).parts||[]).map(p=>p.text||'').join('');if(!txt)throw new Error('jawaban kosong');return parseJ(txt)}
-const SYST='Kamu ahli thumbnail YouTube untuk penonton Indonesia. Dari beberapa gambar adegan film animasi stikman, pilih SATU yang paling cocok menjadi thumbnail. Kriteria: satu subjek utama yang jelas dan besar dengan ekspresi atau gerak yang terbaca, momen dramatis atau lucu yang memancing rasa ingin tahu, kontras dan terang yang baik, latar tidak ramai, tidak membocorkan akhir cerita, selaras dengan judul dan tidak menyesatkan. Hindari gambar gelap, buram, atau yang karakternya kecil. Jika teks membantu, tulis teks pendek: maksimal 4 kata (lebih baik 2-3), huruf kapital, bahasa Indonesia, melengkapi judul dan bukan menyalinnya, terbaca di layar ponsel; kosongkan jika gambar sudah kuat. Tentukan sisi gambar yang paling kosong untuk teks agar tidak menutupi subjek.';
+const SYST='Kamu ahli thumbnail YouTube untuk penonton Indonesia. Dari beberapa gambar adegan film animasi stikman, pilih SATU yang paling cocok menjadi thumbnail. Kriteria: 1 sampai 3 tokoh utama yang jelas dengan ekspresi atau gerak yang terbaca (bukan sekadar duduk diam), momen dramatis, lucu, atau memancing rasa ingin tahu, terang dan kontras baik, latar tidak ramai, tidak membocorkan akhir cerita, selaras dengan judul dan tidak menyesatkan. Hindari gambar gelap, buram, terlalu ramai, atau tokoh kecil. Aplikasi akan otomatis mengecilkan dan menggeser tokoh agar ada ruang kosong di satu sisi untuk teks, jadi jangan memilih gambar hanya karena ada ruang kosong. Teks itu opsional: tulis hanya jika benar-benar menambah rasa penasaran, maksimal 3 kata (lebih baik 2), huruf kapital, bahasa Indonesia, jangan menyalin judul dan jangan menjelaskan hal yang sudah jelas dari gambar. Kosongkan teks jika gambar atau judul sudah kuat.';
 const THC={kuning:'#ffe600',putih:'#ffffff',merah:'#ff3b30',cyan:'#2de2ff'};
-function wrapFit(x,text,maxW,maxLines){let fs=170,L;for(;fs>=54;fs-=6){x.font='900 '+fs+'px Impact,"Arial Black","Segoe UI Black",system-ui,sans-serif';const ws=text.split(/\s+/);L=[];let c='';ws.forEach(w=>{const t=c?c+' '+w:w;if(x.measureText(t).width>maxW&&c){L.push(c);c=w}else c=t});L.push(c);if(L.length<=maxLines&&L.every(l=>x.measureText(l).width<=maxW))break}return{fs,L}}
+function wrapFit(x,text,maxW,maxLines){let fs=124,L;for(;fs>=48;fs-=4){x.font='900 '+fs+'px Impact,"Arial Black","Segoe UI Black",system-ui,sans-serif';const ws=text.split(/\s+/);L=[];let c='';ws.forEach(w=>{const t=c?c+' '+w:w;if(x.measureText(t).width>maxW&&c){L.push(c);c=w}else c=t});L.push(c);if(L.length<=maxLines&&L.every(l=>x.measureText(l).width<=maxW)&&L.length*fs*1.06<=470)break}return{fs,L}}
 function composeThumb(src,text,side,color){const c=document.createElement('canvas');c.width=1280;c.height=720;const x=c.getContext('2d');
  try{x.filter='contrast(1.1) saturate(1.22) brightness(1.04)'}catch(e){}x.drawImage(src,0,0,1280,720);try{x.filter='none'}catch(e){}
- const v=x.createRadialGradient(640,360,280,640,360,830);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.36)');x.fillStyle=v;x.fillRect(0,0,1280,720);
+ const v=x.createRadialGradient(640,360,300,640,360,860);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.3)');x.fillStyle=v;x.fillRect(0,0,1280,720);
  text=cleanT(text).toUpperCase();
- if(text){side=['kiri','kanan','atas','bawah'].includes(side)?side:'kiri';const horiz=side=='atas'||side=='bawah',maxW=horiz?1100:600,{fs,L}=wrapFit(x,text,maxW,horiz?2:3),lh=fs*1.04,h=L.length*lh;
-  let g=null;if(side=='kiri'){g=x.createLinearGradient(0,0,760,0);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}else if(side=='kanan'){g=x.createLinearGradient(1280,0,520,0);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}else if(side=='atas'){g=x.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}else{g=x.createLinearGradient(0,720,0,400);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}
-  x.fillStyle=g;x.fillRect(0,0,1280,720);
-  x.textBaseline='middle';x.lineJoin='round';x.miterLimit=2;x.lineWidth=fs*.15;x.strokeStyle='#000';x.fillStyle=THC[color]||THC.kuning;x.shadowColor='rgba(0,0,0,.6)';x.shadowBlur=18;
-  const al=side=='kiri'?'left':side=='kanan'?'right':'center',px=side=='kiri'?56:side=='kanan'?1224:640,y0=side=='atas'?44+lh/2:side=='bawah'?720-110-h+lh/2:(720-h)/2+lh/2;x.textAlign=al;
-  L.forEach((l,k)=>{const y=y0+k*lh;x.strokeText(l,px,y);x.shadowBlur=0;x.fillText(l,px,y);x.shadowBlur=18})}
+ if(text){const R=side=='kanan',{fs,L}=wrapFit(x,text,470,3),lh=fs*1.06,h=L.length*lh;
+  /* teks hanya di kolom samping (maks. 470 px dari 1280) agar tokoh yang sudah digeser tidak tertutup */
+  const g=R?x.createLinearGradient(1280,0,640,0):x.createLinearGradient(0,0,640,0);g.addColorStop(0,'rgba(0,0,0,.55)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(R?640:0,0,640,720);
+  x.textBaseline='middle';x.lineJoin='round';x.miterLimit=2;x.lineWidth=fs*.14;x.strokeStyle='#000';x.fillStyle=THC[color]||THC.kuning;x.shadowColor='rgba(0,0,0,.6)';x.shadowBlur=16;x.textAlign=R?'right':'left';
+  const px=R?1240:40,y0=(720-h)/2+lh/2;
+  L.forEach((l,k)=>{const y=y0+k*lh;x.strokeText(l,px,y);x.shadowBlur=0;x.fillText(l,px,y);x.shadowBlur=16})}
  return c}
+/* tata letak otomatis: ukur posisi tokoh (dan api) di layar, zoom-out dan geser kamera agar kolom teks kosong */
+function actBox(){cam.updateMatrixWorld();const v=new THREE.Vector3();let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,n=0;
+ const add=(px,hy,pz)=>{v.set(px,hy,pz).project(cam);const sx=(v.x+1)*640,sy=(1-v.y)*360;x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);n++};
+ AA.forEach(a=>[-.6,.6].forEach(dx=>[0,2.4].forEach(hy=>add(a.pos.x+dx,hy,a.pos.z))));
+ PR.forEach(r=>{if(r.a=='api'&&r.obj.visible)[-.6,.6].forEach(dx=>[0,1.6].forEach(hy=>add(r.obj.position.x+dx,hy,r.obj.position.z)))});
+ return n?{x0,x1,y0,y1}:null}
+async function grabThumb(idx,pref,hasT,force){if(busy)throw new Error('Sedang sibuk.');if(play&&!paused)await tog();
+ const W0=RW,H0=RH,t=sceneT(idx);busy=true;NOUI=1;PV=null;
+ try{setRes(1280,720);CAMO='dekat';
+  const shot=wantT=>{cam.zoom=1;cam.clearViewOffset();cur=-1;lastT=-1;frame(t,t);
+   let b=actBox(),side=pref=='kiri'||pref=='kanan'?pref:'kiri',room=true;
+   if(b){const TW=wantT?500:0,aw=1280-TW-70,ah=640;let w=b.x1-b.x0,h=b.y1-b.y0;
+    const z=Math.max(.55,Math.min(1,aw/w,ah/h));
+    if(z<1){cam.zoom=z;cam.updateProjectionMatrix();b=actBox();w=b.x1-b.x0;h=b.y1-b.y0}
+    room=w<=aw+24&&h<=ah+24;const cx=(b.x0+b.x1)/2;
+    if(!(pref=='kiri'||pref=='kanan'))side=cx<640?'kanan':'kiri';
+    let dx=!wantT?Math.max(-260,Math.min(260,640-cx)):(side=='kiri'?(TW+35+(aw-w)/2)-b.x0:(35+(aw-w)/2)-b.x0);
+    let dy=372-(b.y0+b.y1)/2;dy=Math.max(30-b.y0,Math.min(705-b.y1,dy));
+    cam.setViewOffset(1280,720,-dx,-dy,1280,720)}
+   frame(t,t);return{side,room}};
+  let r=shot(hasT);if(hasT&&!r.room&&!force){r=shot(false);r.room=false}
+  const c=document.createElement('canvas');c.width=1280;c.height=720;c.getContext('2d').drawImage(cv,0,0,1280,720);
+  return{c,side:r.side,room:r.room}}
+ finally{cam.zoom=1;cam.clearViewOffset();CAMO=null;NOUI=0;setRes(W0,H0);busy=false;cur=-1;lastT=-1;dirty=1}}
 async function toJpeg(c){for(let q=.9;q>=.5;q-=.1){const b=await new Promise(z=>c.toBlob(z,'image/jpeg',q));if(b&&b.size<1.9*1048576){return await new Promise(z=>{const r=new FileReader();r.onload=()=>z(r.result);r.readAsDataURL(b)})}}throw new Error('gambar terlalu besar')}
 function showThumb(){const im=$('thi');if(!THM.data){im.style.display='none';$('thn').textContent='';return}im.src=THM.data;im.style.display='block';$('tht').value=THM.txt||'';$('ths').value=THM.i>=0?THM.i+1:'';
  $('thn').textContent='Adegan '+(THM.i+1)+' ('+fm(THM.t)+')'+(THM.why?' · '+THM.why:'');$('ct4').textContent=($('tht').value.length)+'/40'}
@@ -852,13 +891,13 @@ async function genThumb(opt){opt=opt||{};if(THB||busy)return false;THB=true;$('g
   else if(CFG.ks.length){st('Memotret adegan-adegan film...');const ids=pickScenes(10),fr=await grabFrames(ids.map(i=>({i,t:sceneT(i),cam:'dekat'})),640,360);
    const m=ytMeta(true).snippet,parts=[{text:'Judul video: '+m.title+'\nKata kunci: '+(CFG.yt.kw||'-')+'\nTag: '+m.tags.slice(0,8).join(', ')+'\nUsulan teks: '+(hint||'-')+'\nBoleh menambah teks: '+(CFG.th.tx?'ya':'tidak')+'\n\nBerikut '+fr.length+' gambar kandidat:'}];
    fr.forEach((c,k)=>{const i=ids[k];parts.push({text:'Gambar '+(k+1)+' (adegan '+(i+1)+', menit '+fm(sceneT(i))+'): '+(FILM.scenes[i].narasi||'').slice(0,170)});parts.push({inlineData:{mimeType:'image/jpeg',data:c.toDataURL('image/jpeg',.72).split(',')[1]}})});
-   parts.push({text:'Balas JSON: {"pilihan":1,"alasan":"satu kalimat","teks":"","sisi":"kiri|kanan|atas|bawah","warna":"kuning|putih|merah|cyan"}'});
+   parts.push({text:'Balas JSON: {"pilihan":1,"alasan":"satu kalimat","teks":"","warna":"kuning|putih|merah|cyan"}'});
    st('Gemini memilih adegan terbaik untuk thumbnail...');let r={};try{r=await gemV(CFG.sm,SYST,parts)}catch(e){if([401,403].includes(e.status))throw e}
-   const pk=Math.min(ids.length,Math.max(1,Math.round(+r.pilihan)||1));idx=ids[pk-1];why=cleanT(r.alasan);txt=CFG.th.tx?cleanT(r.teks||hint):'';side=r.sisi||side;color=r.warna||color}
+   const pk=Math.min(ids.length,Math.max(1,Math.round(+r.pilihan)||1));idx=ids[pk-1];why=cleanT(r.alasan);txt=CFG.th.tx?cleanT(r.teks||hint):'';color=r.warna||color}
   else{idx=pickScenes(3)[1]||0;txt=CFG.th.tx?hint:'';why='tanpa API key: adegan dipilih otomatis'}
-  txt=cleanT(txt).split(/\s+/).slice(0,4).join(' ').slice(0,40);
-  st('Menyusun thumbnail...');const t=sceneT(idx),[fc]=await grabFrames([{i:idx,t,cam:'dekat'}],1280,720),data=await toJpeg(composeThumb(fc,txt,side,color));
-  Object.assign(THM,{data,txt,i:idx,t,side,color,why,key:thKey()});showThumb();saveThumb();st('Thumbnail siap. Ubah teks atau adegan lalu tekan "Terapkan", atau buat ulang dengan AI.');return true}
+  txt=cleanT(txt).split(/\s+/).filter(Boolean).slice(0,3).join(' ').slice(0,30);
+  st('Menata posisi tokoh dan teks...');const t=sceneT(idx),force=!!(opt.keep||man),lay=await grabThumb(idx,$('thp').value||'auto',!!txt,force);let note='';if(txt&&!lay.room&&!force){txt='';note=' Teks tidak dipasang karena tidak ada ruang kosong tanpa menutupi tokoh.'}side=lay.side;const data=await toJpeg(composeThumb(lay.c,txt,side,color));
+  Object.assign(THM,{data,txt,i:idx,t,side,color,why,key:thKey()});showThumb();saveThumb();st('Thumbnail siap.'+note+' Ubah teks atau adegan lalu tekan "Terapkan", atau buat ulang dengan AI.');return true}
  catch(e){st('Gagal membuat thumbnail: '+(e.message||e));return false}finally{THB=false;$('gth').disabled=$('thr').disabled=false}}
 async function ensureThumb(){if(!CFG.th.use||(THM.data&&THM.key===thKey()))return;await genThumb()}
 async function ytThumb(id,tok){const b=await(await fetch(THM.data)).blob();if(b.size>2*1048576)throw new Error('ukuran lebih dari 2 MB');
@@ -866,7 +905,7 @@ async function ytThumb(id,tok){const b=await(await fetch(THM.data)).blob();if(b.
  if(x.status!==200)throw new Error(apiErr(x)+' (thumbnail kustom butuh kanal yang sudah terverifikasi)')}
 $('gth').onclick=()=>genThumb();$('thr').onclick=()=>{if(!THM.data){genThumb();return}genThumb({keep:1})};
 $('thd').onclick=async()=>{if(!THM.data){st('Belum ada thumbnail.');return}saveF(await(await fetch(THM.data)).blob(),'thumbnail.jpg')};
-$('thu').checked=!!CFG.th.use;$('thu').onchange=()=>{CFG.th.use=$('thu').checked?1:0;svCfg()};$('thx').checked=!!CFG.th.tx;$('thx').onchange=()=>{CFG.th.tx=$('thx').checked?1:0;svCfg()};
+$('thu').checked=!!CFG.th.use;$('thu').onchange=()=>{CFG.th.use=$('thu').checked?1:0;svCfg()};$('thp').value=CFG.th.pos||'auto';$('thp').onchange=()=>{CFG.th.pos=$('thp').value;svCfg()};$('thx').checked=!!CFG.th.tx;$('thx').onchange=()=>{CFG.th.tx=$('thx').checked?1:0;svCfg()};
 $('tht').addEventListener('input',()=>{$('ct4').textContent=$('tht').value.length+'/40'});
 dbs('voice','readonly',s=>s.get('thumb')).then(h=>{if(h&&h.data){Object.assign(THM,{data:h.data,txt:h.txt||'',i:h.i,t:h.t||0,side:h.side||'kiri',color:h.color||'kuning',why:h.why||'',key:h.key||''});showThumb()}}).catch(()=>{});
 
@@ -877,4 +916,57 @@ async function autoAll(){if(AAB||busy||!CFG.ks.length)return;AAB=true;
   if(CFG.th.use&&(!THM.data||THM.key!==thKey()))await genThumb();
   st('Judul, deskripsi, tag, dan thumbnail otomatis siap. Periksa di tab Upload.')}
  catch(e){st('Otomatis dihentikan: '+(e.message||e))}finally{AAB=false}}
+
+/* ---------- v11: dubbing Inggris otomatis (terjemah + suara + mix sepanjang video) ---------- */
+CFG.dub=Object.assign({auto:0,cp:1},CFG.dub||{});
+const DUB={tx:[],eb:[],ok:false,busy:false,m4a:null,h:''};
+const hsh=q=>{let h=5381;for(let i=0;i<q.length;i++)h=((h<<5)+h+q.charCodeAt(i))|0;return String(h>>>0)};
+const dubKey=()=>hsh(JSON.stringify(FILM.scenes.map(q=>q.narasi||''))+'|'+CFG.m+'|'+CFG.vn+'|'+CFG.spd);
+const dubReady=()=>DUB.ok&&DUB.h===dubKey();
+const wlim=i=>Math.max(5,Math.floor((D[i]-.7)*2.5*SPD));
+const enClean=q=>String(q||'').replace(/[<>"\u201c\u201d]/g,'').replace(/\s+/g,' ').trim();
+async function dubTranslate(){const n=FILM.scenes.length,out=new Array(n).fill(''),idx=[];FILM.scenes.forEach((q,i)=>{if(q.narasi)idx.push(i)});
+ const SYS='You are a professional dubbing scriptwriter. Translate the Indonesian narration of an animated family YouTube film into natural, vivid, easy-to-speak English for a voice-over narrator. Keep character names and proper names unchanged. Keep the meaning, mood, humor and sound words like "Wuuush!", and do not add new facts. Every line must be speakable within its limit: respect max_words strictly (shorter is fine). No quotation marks and no stage directions. Reply ONLY with a JSON array of objects {"no":number,"en":"translated line"} in the same order as the input.';
+ for(let a=0;a<idx.length;a+=8){const part=idx.slice(a,a+8);st('Menerjemahkan ke Inggris '+Math.min(a+8,idx.length)+'/'+idx.length+'...');
+  const inp=part.map(i=>({no:i+1,id:FILM.scenes[i].narasi,max_words:wlim(i)}));let r=null;
+  for(let t=0;t<3&&!r;t++){try{const x=await gem(CFG.sm,SYS,'Film title: "'+(FILM.judul||'')+'"\nTranslate these lines:\n'+JSON.stringify(inp),true);if(Array.isArray(x)&&x.length)r=x}catch(e){if(t==2)throw e;await wait(2000)}}
+  if(!r)throw new Error('terjemahan gagal pada adegan '+(part[0]+1));
+  part.forEach((i,k)=>{const m=r.find(q=>+q.no==i+1)||r[k];out[i]=enClean(m&&(m.en||m.text))});
+  const miss=part.find(i=>!out[i]);if(miss!=null)throw new Error('terjemahan kosong pada adegan '+(miss+1))}
+ return out}
+function cutBuf(b,sec){const n=Math.min(b.length,Math.floor(sec*b.sampleRate)),o=ctx().createBuffer(1,n,b.sampleRate),d=o.getChannelData(0);d.set(b.getChannelData(0).subarray(0,n));const f=Math.min(n,Math.floor(.08*b.sampleRate));for(let i=0;i<f;i++)d[n-1-i]*=i/f;return o}
+/* suara Inggris satu adegan, dipaskan ke jendela waktu adegan (tanpa mengubah nada); terlalu panjang = diringkas AI */
+async function dubFit(i,text){let tx=text;const win=Math.max(2.2,D[i]-.55);
+ for(let tr=0;tr<3;tr++){const b=await ttsC(tx);let r=SPD;if(b.duration/SPD>win)r=Math.min(SPD*1.3,b.duration/win);
+  let eb=r>1.02?stretch(b,r):b;
+  if(eb.duration<=win+.35||tr==2){DUB.tx[i]=tx;if(eb.duration>win+.35)eb=cutBuf(eb,win+.3);return eb}
+  const mw=Math.max(4,Math.floor(tx.split(/\s+/).length*win/eb.duration*.88));
+  try{const q=await gem(CFG.sm,'Shorten this English voice-over line to at most '+mw+' words, keeping the meaning and mood. Reply with the shortened line only, no quotes.',tx,false);const c=enClean(q);if(c)tx=c}catch(e){DUB.tx[i]=tx;return eb.duration>win+.35?cutBuf(eb,win+.3):eb}}}
+async function dubRender(){const SR=44100,oc=new OfflineAudioContext(1,Math.ceil(TOT*SR),SR),mg=oc.createGain();mg.connect(oc.destination);const sv=EB;EB=DUB.eb;try{schedule(oc,mg,0)}finally{EB=sv}const ab=await oc.startRendering();return ab.getChannelData(0)}
+async function encM4A(L,SR){try{if(!window.AudioEncoder||!window.Mp4Muxer)return null;const ac={codec:'mp4a.40.2',sampleRate:SR,numberOfChannels:1,bitrate:128000};if(!(await AudioEncoder.isConfigSupported(ac)).supported)return null;
+ const mx=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),audio:{codec:'aac',numberOfChannels:1,sampleRate:SR},fastStart:'in-memory'});let err=null;const ae=new AudioEncoder({output:(c,m)=>mx.addAudioChunk(c,m),error:e=>{err=e}});ae.configure(ac);
+ for(let o=0;o<L.length;o+=4410){const n=Math.min(4410,L.length-o);ae.encode(new AudioData({format:'f32-planar',sampleRate:SR,numberOfFrames:n,numberOfChannels:1,timestamp:Math.round(o*1e6/SR),data:L.slice(o,o+n)}));while(ae.encodeQueueSize>16)await wait(5)}
+ await ae.flush();if(err)throw err;mx.finalize();return new Blob([mx.target.buffer],{type:'audio/mp4'})}catch(e){return null}}
+function wavBlob(L,SR){const n=L.length,b=new ArrayBuffer(44+n*2),d=new DataView(b),w=(o,q)=>{for(let i=0;i<q.length;i++)d.setUint8(o+i,q.charCodeAt(i))};w(0,'RIFF');d.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);d.setUint32(24,SR,true);d.setUint32(28,SR*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,n*2,true);for(let i=0;i<n;i++){const q=Math.max(-1,Math.min(1,L[i]));d.setInt16(44+i*2,q<0?q*32768:q*32767,true)}return new Blob([b],{type:'audio/wav'})}
+function dubUI(){const ok=dubReady();['dda','ddw','dds'].forEach(i=>$(i).disabled=!ok);$('dn').textContent=ok?('Siap: '+DUB.eb.filter(Boolean).length+' adegan, durasi '+(TOT/60).toFixed(1)+' menit.'+(DUB.m4a?'':' Encoder AAC tidak tersedia di perangkat ini, gunakan WAV.')):'Belum dibuat.'}
+async function dubAll(){if(DUB.busy||busy)return false;
+ if(!CFG.ks.length){st('Isi Gemini API key di Pengaturan.');return false}
+ if(!BUF.some(Boolean)){st('Siapkan suara Indonesia dulu (tombol Suara AI di tab Tonton) agar durasi adegan pasti.');return false}
+ DUB.busy=true;$('dgo').disabled=true;DUB.ok=false;dubUI();
+ try{const key=dubKey();let sv=null;try{sv=JSON.parse(localStorage.getItem('fs_dub')||'null')}catch(e){}
+  let tx=sv&&sv.k==key&&Array.isArray(sv.tx)?sv.tx:null;if(!tx)tx=await dubTranslate();
+  const n=FILM.scenes.length;DUB.tx=tx.slice();DUB.eb=new Array(n).fill(null);
+  for(let i=0;i<n;i++){if(!tx[i])continue;st('Membuat suara Inggris '+(i+1)+'/'+n+'...');DUB.eb[i]=await dubFit(i,tx[i])}
+  try{localStorage.setItem('fs_dub',JSON.stringify({k:key,tx:DUB.tx}))}catch(e){}
+  st('Menggabungkan audio dubbing...');const L=await dubRender();DUB.m4a=await encM4A(L,44100);DUB.h=key;DUB.ok=true;dubUI();
+  st('Dubbing Inggris siap. Unduh audio dan subtitle Inggris di kartu Dubbing Inggris (tab Upload).');return true}
+ catch(e){st('Dubbing gagal: '+(e.message||e));return false}finally{DUB.busy=false;$('dgo').disabled=false;dubUI()}}
+async function dlWav(){st('Menyiapkan WAV...');const L=await dubRender();saveF(wavBlob(L,44100),'dubbing-english.wav');st('WAV diunduh.')}
+$('dgo').onclick=()=>dubAll();
+$('dda').onclick=async()=>{if(!dubReady())return;if(DUB.m4a){saveF(DUB.m4a,'dubbing-english.m4a');st('Audio dubbing diunduh.')}else await dlWav()};
+$('ddw').onclick=()=>{if(dubReady())dlWav()};
+$('dds').onclick=()=>{if(dubReady()){saveF(new Blob([makeSRT(DUB.tx,DUB.eb)],{type:'text/plain'}),'subtitle-english.srt');st('Subtitle Inggris diunduh.')}};
+$('dau').checked=!!CFG.dub.auto;$('dau').onchange=()=>{CFG.dub.auto=$('dau').checked?1:0;svCfg()};
+$('dcp').checked=!!CFG.dub.cp;$('dcp').onchange=()=>{CFG.dub.cp=$('dcp').checked?1:0;svCfg()};
+dubUI();
 </script></body></html>
