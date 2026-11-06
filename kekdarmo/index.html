@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kekdarmo</title>
+<style>
+:root{--bg:#f4f4f6;--fg:#15151a;--cd:#fff;--ac:#2f9e6e;--mu:#6b6b78;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#0e0e13;--fg:#f2f2f6;--cd:#181820;--ac:#4cc796;--mu:#9a9aa8}}
+*{box-sizing:border-box}body{margin:0;padding:14px;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;max-width:560px;margin-inline:auto}
+canvas{width:100%;max-height:68vh;aspect-ratio:9/16;object-fit:contain;background:#000;border-radius:12px;display:block;margin:auto}
+.r{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+button,select,input,textarea{font:inherit;color:var(--fg);background:var(--cd);border:1px solid var(--mu);border-radius:9px;padding:9px}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}button:disabled{opacity:.5}
+details{background:var(--cd);border-radius:10px;padding:10px;margin:8px 0}summary{cursor:pointer;font-weight:600}
+textarea{width:100%;margin-top:8px}label{font-size:.85rem;color:var(--mu)}#st{font-size:.85rem;color:var(--mu);min-height:1.3em}
+</style></head><body>
+<canvas id="cv" width="720" height="1280"></canvas>
+<div class="r"><button id="bp" class="p">Putar</button><button id="bs">Siapkan suara</button><button id="br">Rekam video</button><button id="bt">Subtitle</button></div>
+<div id="st"></div>
+<details open><summary>Naskah (format: nama|dialog)</summary><textarea id="tx" rows="12"></textarea></details>
+<details><summary>Suara AI (Gemini)</summary>
+<label>API key (pisahkan koma/baris, maks. 50)</label><textarea id="ks" rows="2" placeholder="AIza..., AIza..."></textarea>
+<div class="r"><label>Bima <select id="v_bima"></select></label><label>Sari <select id="v_sari"></select></label><label>Kakek <select id="v_kakek"></select></label></div>
+<div class="r"><input id="vm" placeholder="ID model" size="26"><button id="sv">Simpan</button></div></details>
+<details open><summary>Cerita AI (lanjutan episode)</summary>
+<div id="eps" style="font-size:.85rem;color:var(--mu)"></div>
+<label>Arahan episode berikutnya (boleh kosong)</label><textarea id="ide" rows="2" placeholder="mis. Bima belajar kenapa tanaman perlu matahari"></textarea>
+<div class="r"><label>Model cerita <input id="sm" size="22"></label></div>
+<div class="r"><label>Lingkungan <select id="ev"><option value="">Ikut cerita</option><option>siang</option><option>pagi</option><option>sore</option><option>malam</option><option>hujan</option><option>berkabut</option></select></label></div><div class="r"><button id="gs" class="p">Tulis episode baru</button><button id="gk">Kunci episode</button></div></details>
+<details><summary>YouTube Shorts</summary>
+<label>Judul</label><input id="yt" style="width:100%"><label>Deskripsi</label><textarea id="yd" rows="4"></textarea><label>Tag (pisah koma)</label><input id="yg" style="width:100%">
+<label>OAuth Client ID</label><input id="cid" style="width:100%">
+<div class="r"><select id="pv"><option value="private">Pribadi</option><option value="unlisted">Tidak publik</option><option value="public">Publik</option></select><select id="mk"><option value="1">Untuk anak</option><option value="0">Bukan untuk anak</option></select></div>
+<div class="r"><button id="gm">Buat judul dan deskripsi AI</button><button id="yu" class="p">Upload ke YouTube</button></div>
+<div style="font-size:.8rem;color:var(--mu)">Rekam video dulu, lalu upload. Login Google butuh halaman dibuka lewat http(s) yang origin-nya terdaftar di Client ID.</div></details>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=i=>document.getElementById(i),W=720,H=1280,cv=$('cv'),g=cv.getContext('2d'),st=m=>$('st').textContent=m;
+const cl=x=>Math.min(1,Math.max(0,x)),ea=x=>x*x*(3-2*x);
+/* ---------- naskah: [tokoh, dialog, kamera, tahap, aksi, posisi] ---------- */
+const NM={bima:'Bima',sari:'Sari',kakek:'Kakek Darmo'},VO=['Kore','Charon','Puck','Leda','Aoede','Fenrir','Zephyr','Algenib'];
+const P0={bima:[-4.2,3.4],sari:[-3.2,4.2],kakek:[-.6,3.6]};
+const SCR=[
+['bima','Kek, lihat! Ikan Bima kok lesu, airnya juga keruh.','pond',2.4,'point',{bima:[-3.6,2.7],sari:[-2.6,3.2],kakek:[-1.2,2.9]}],
+['kakek','Itu karena kotoran ikan berubah jadi amonia, Nak. Kalau menumpuk, ikan jadi sakit.','spk',2.6,'talk'],
+['sari','Terus gimana caranya, Kek? Apa airnya dikuras terus?','spk',2.6,'talk'],
+['kakek','Jangan dikuras. Kita buat sistem akuaponik. Air kolam kita alirkan lewat pompa ke filter.','filter',3.1,'point',{kakek:[.3,2.3],bima:[-.6,2.9],sari:[1.7,2.9]}],
+['bima','Di dalam filter itu ada apa, Kek?','spk',3.1,'talk'],
+['kakek','Ada bakteri baik. Mereka mengubah amonia jadi nitrit, lalu jadi nitrat.','filter',3.7,'talk'],
+['sari','Wah, ternyata bakteri bisa jadi teman!','spk',3.7,'cheer'],
+['kakek','Betul. Nitrat itu pupuk. Airnya kita alirkan ke bedeng sayur.','bed',4.2,'point',{kakek:[2.7,2.2],bima:[4.0,2.4],sari:[3.4,2.9]}],
+['bima','Jadi tanamannya makan kotoran ikan?','spk',4.2,'talk'],
+['sari','Dan tanaman membersihkan air buat ikan. Saling membantu!','spk',4.8,'talk'],
+['kakek','Nah, itu namanya akuaponik. Ikan memberi makan tanaman, tanaman menjaga air ikan.','bed',4.9,'talk'],
+['bima','Lihat, ikan Bima sudah segar lagi!','pond',5,'jump',{bima:[-3.4,2.7],sari:[-2.4,3.2],kakek:[-1.2,3.0]}],
+['sari','Selada dan tomatnya juga tumbuh subur!','bed',5,'cheer',{sari:[2.6,2.6],bima:[3.8,2.8],kakek:[3.2,3.3]}],
+['kakek','Alam itu saling membantu, kalau kita mau mengerti caranya.','wide',5,'talk',{kakek:[.6,3.6],bima:[-.8,4.2],sari:[1.8,4.2]}]];
+const EP={no:1,judul:'Kolam Kakek'};let EPS=[{no:1,judul:'Kolam Kakek',ringkas:'Bima, Sari, dan Kakek Darmo menolong ikan Bima yang lesu. Kakek mengajarkan akuaponik: kotoran ikan jadi amonia, bakteri baik mengubahnya jadi nitrit lalu nitrat, nitrat jadi pupuk bedeng sayur, tanaman membersihkan air. Ikan kembali sehat, selada dan tomat subur.',akhir:'Alam itu saling membantu, kalau kita mau mengerti caranya.'}];
+try{const a=JSON.parse(localStorage.getItem('kd_eps')||'null');if(a&&a.length)EPS=a;const c=JSON.parse(localStorage.getItem('kd_cur')||'null');if(c&&c.scr&&c.scr.length){SCR.length=0;c.scr.forEach(l=>SCR.push(l));EP.no=c.no;EP.judul=c.judul;EP.yt=c.yt}}catch(e){}
+const svE=()=>{try{localStorage.setItem('kd_eps',JSON.stringify(EPS));localStorage.setItem('kd_cur',JSON.stringify({no:EP.no,judul:EP.judul,scr:SCR,yt:EP.yt}))}catch(e){}};
+let CFG={ks:[],ki:0,v:{bima:'Puck',sari:'Leda',kakek:'Algenib'},m:'gemini-3.8-flash-lite-tts',sm:'gemini-3.6-flash',cid:'447290350576-qo6qeikuere50aeedvb2mc53q2ssnk3k.apps.googleusercontent.com',pv:'private',sub:'pop'};
+try{Object.assign(CFG,JSON.parse(localStorage.getItem('vcfg')||'{}'))}catch(e){}
+['bima','sari','kakek'].forEach(k=>{const s=$('v_'+k);s.innerHTML=VO.map(v=>'<option>'+v+'</option>').join('');s.value=CFG.v[k]||s.value});
+$('ks').value=CFG.ks.join('\n');$('vm').value=CFG.m;
+const ftext=()=>SCR.map(l=>l[0]+'|'+l[1]).join('\n');$('tx').value=ftext();
+function save(){CFG.ks=$('ks').value.split(/[,\s;]+/).filter(Boolean).slice(0,50);CFG.ki=0;['bima','sari','kakek'].forEach(k=>CFG.v[k]=$('v_'+k).value);CFG.m=$('vm').value.trim()||CFG.m;CFG.sm=$('sm').value.trim()||CFG.sm;CFG.cid=$('cid').value.trim()||CFG.cid;CFG.pv=$('pv').value;
+ try{localStorage.setItem('vcfg',JSON.stringify(CFG))}catch(e){}}
+$('sv').onclick=()=>{save();st('Pengaturan suara disimpan ('+CFG.ks.length+' key).')};
+$('tx').onchange=()=>{$('tx').value.split('\n').forEach((s,i)=>{const m=s.split('|');if(i<SCR.length&&NM[m[0].trim()]&&m[1]){SCR[i][0]=m[0].trim();SCR[i][1]=m.slice(1).join('|').trim()}});BUF=[];ENV=[];plan()};
+
+/* ---------- renderer & lingkungan ---------- */
+const ren=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});ren.setSize(W,H);ren.setPixelRatio(1);
+ren.outputEncoding=THREE.sRGBEncoding;ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;
+const sc=new THREE.Scene();sc.fog=new THREE.Fog(0xcfe6f2,18,48);const cam=new THREE.PerspectiveCamera(42,W/H,.1,120);
+const tex=(w,h,fn,rep)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep)}return t};
+const GR=(()=>{const c=document.createElement('canvas');c.width=3;c.height=1;const x=c.getContext('2d');['#777','#bbb','#fff'].forEach((v,i)=>{x.fillStyle=v;x.fillRect(i,0,1,1)});const t=new THREE.CanvasTexture(c);t.minFilter=t.magFilter=THREE.NearestFilter;t.generateMipmaps=false;return t})();
+const M=(c,o)=>{o=o||{};const m=new THREE.MeshToonMaterial({color:c,gradientMap:GR});['map','transparent','opacity','side'].forEach(k=>{if(o[k]!==undefined)m[k]=o[k]});return m};
+const OLM=new THREE.MeshBasicMaterial({color:0x14101a,side:THREE.BackSide,fog:false});
+const add=(geo,mat,x,y,z,p,sh)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=sh!==0;m.receiveShadow=true;(p||sc).add(m);if(sh!==0&&!mat.transparent&&geo.type!='PlaneGeometry'){geo.boundingSphere||geo.computeBoundingSphere();const o=new THREE.Mesh(geo,OLM);o.scale.setScalar(1+Math.min(.12,Math.max(.012,.035/(geo.boundingSphere.radius||1))));m.add(o)}return m};
+const skyM=new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:tex(8,256,(x,w,h)=>{x.fillStyle='#a8d6f2';x.fillRect(0,0,w,h)})});sc.add(new THREE.Mesh(new THREE.SphereGeometry(80,24,16),skyM));
+const glow=tex(128,128,x=>{const q=x.createRadialGradient(64,64,0,64,64,64);q.addColorStop(0,'rgba(255,255,255,1)');q.addColorStop(.4,'rgba(255,255,255,.4)');q.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=q;x.fillRect(0,0,128,128)});
+const hl=new THREE.HemisphereLight(0xdcefff,0x6a8a4a,.55);sc.add(hl);
+const dl=new THREE.DirectionalLight(0xfff0d0,.75);dl.position.set(8,12,8);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);Object.assign(dl.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});dl.shadow.bias=-.0005;sc.add(dl);
+const GM=add(new THREE.PlaneGeometry(120,120).rotateX(-Math.PI/2),M(0xffffff,{map:tex(256,256,(x,w,h)=>{x.fillStyle='#5f9a3f';x.fillRect(0,0,w,h);for(let i=0;i<5000;i++){x.fillStyle='hsl('+(85+Math.random()*30)+',45%,'+(28+Math.random()*22)+'%)';x.fillRect(Math.random()*w,Math.random()*h,2,4)}},18),roughness:1}),0,0,0,0,0);
+add(new THREE.BoxGeometry(9,3.4,3.4),M(0xefe2c6),1,1.7,-9);add(new THREE.ConeGeometry(6.6,2.2,4).rotateY(Math.PI/4),M(0xb4523a),1,4.4,-9).scale.set(1,1,.62);
+add(new THREE.BoxGeometry(.9,1.8,.1),M(0x6b4a2f),-.5,.9,-7.3);add(new THREE.BoxGeometry(1.2,1,.1),M(0x9fd0ea,{metalness:.6,roughness:.15}),2.6,1.8,-7.3);
+for(let i=-9;i<=9;i++)add(new THREE.BoxGeometry(.35,1.3,.1),M(0xd9c7a0),i*.75,.65,-5);
+const tree=(x,z,s)=>{add(new THREE.CylinderGeometry(.15*s,.22*s,1.8*s,8),M(0x6b4a2f),x,.9*s,z);[[0,2.3,0,1.1],[.5,2,.2,.8],[-.5,1.9,-.1,.85]].forEach(a=>add(new THREE.IcosahedronGeometry(a[3]*s,1),M(0x3f8f3f,{flatShading:true}),x+a[0]*s,a[1]*s,z+a[2]*s))};
+[[-8,-8,1.6],[9,-8,1.8],[-12,-12,2],[13,-11,2.2]].forEach(a=>tree(...a));
+const PX=-2.4,pond=new THREE.Group();pond.position.set(PX,0,0);sc.add(pond);
+add(new THREE.CylinderGeometry(1.7,1.7,.1,40),M(0x1c3b4d),0,.02,0,pond);add(new THREE.CylinderGeometry(1.6,1.6,1.1,40,1,true),M(0x2a5a73,{side:THREE.BackSide}),0,.55,0,pond);
+for(let i=0;i<20;i++){const a=i/20*6.283,r=add(new THREE.DodecahedronGeometry(.28+Math.random()*.12,0),M(0x8f8a80,{flatShading:true}),Math.cos(a)*1.72,.5,Math.sin(a)*1.72,pond);r.scale.y=.75;r.rotation.set(Math.random(),Math.random(),0)}
+const wg=new THREE.RingGeometry(.01,1.62,48,10).rotateX(-Math.PI/2),wp0=wg.attributes.position.array.slice(),wmat=M(0x3aa0d8,{transparent:true,opacity:.78,roughness:.08,metalness:.35});add(wg,wmat,0,1,0,pond,0);
+const fish=[];for(let i=0;i<4;i++){const f=new THREE.Group(),c=[0xff7a2f,0xffb02f,0xf2f2f2,0xff5a2f][i];add(new THREE.SphereGeometry(.2,14,10),M(c,{metalness:.3,roughness:.35}),0,0,0,f,0).scale.set(1.9,.85,.6);
+ const tl=new THREE.Group();tl.position.x=-.36;f.add(tl);add(new THREE.ConeGeometry(.16,.3,4).rotateZ(Math.PI/2),M(c),-.12,0,0,tl,0).scale.z=.3;f.userData.t=tl;pond.add(f);fish.push(f)}
+add(new THREE.BoxGeometry(.4,.35,.4),M(0x3b4252,{metalness:.5}),-.1,.18,.5);
+const filt=new THREE.Group();filt.position.set(1,0,.2);sc.add(filt);add(new THREE.CylinderGeometry(.55,.55,1.5,28),M(0xbfd4e0,{transparent:true,opacity:.35,roughness:.05}),0,.8,0,filt,0);add(new THREE.CylinderGeometry(.5,.5,1.1,24),M(0xaaaaaa),0,.65,0,filt,0);
+const fb=[];for(let i=0;i<22;i++)fb.push(add(new THREE.SphereGeometry(.09,8,8),M(0x777788),(Math.random()-.5)*.8,.25+Math.random()*.85,(Math.random()-.5)*.8,filt,0));
+add(new THREE.CylinderGeometry(.58,.58,.1,28),M(0x333845),0,1.6,0,filt);
+const BX=3.6;add(new THREE.BoxGeometry(3,.2,2),M(0x7a5a38),BX,1.2,0);[[-1.3,-.8],[1.3,-.8],[-1.3,.8],[1.3,.8]].forEach(a=>add(new THREE.BoxGeometry(.18,1.2,.18),M(0x5c4329),BX+a[0],.6,a[1]));
+[[0,1],[0,-1]].forEach(a=>add(new THREE.BoxGeometry(3,.4,.12),M(0x8a6a44),BX,1.4,a[1]));[[1.5,0],[-1.5,0]].forEach(a=>add(new THREE.BoxGeometry(.12,.4,2),M(0x8a6a44),BX+a[0],1.4,0));add(new THREE.BoxGeometry(2.8,.1,1.8),M(0x6e5a48),BX,1.32,0,0,0);
+const PL=[];for(let i=0;i<8;i++){const gp=new THREE.Group();gp.position.set(BX-1.05+(i%4)*.7,1.37,-.45+Math.floor(i/4)*.9);
+ for(let k=0;k<8;k++){const a=k/8*6.283,l=add(new THREE.SphereGeometry(.17,8,6),M(new THREE.Color().setHSL(.3+Math.random()*.06,.6,.3+Math.random()*.15)),Math.cos(a)*.1,.1+k%3*.04,Math.sin(a)*.1,gp);l.scale.set(1,.3,.6);l.rotation.set(0,-a,.4)}
+ if(i%2==0)add(new THREE.SphereGeometry(.06,8,8),M(0xe23a2f),.05,.28,.05,gp,0);sc.add(gp);PL.push(gp)}
+const FP=new THREE.CatmullRomCurve3([[PX+1.2,.85,.4],[.1,.4,.5],[.4,.35,.2],[1,.3,.2],[1,1.75,.2],[2,1.8,.2],[BX,1.8,0],[BX,1.5,.75],[2,.5,.9],[PX+1.4,.6,.7],[PX+1.2,.85,.4]].map(a=>new THREE.Vector3(...a)));
+add(new THREE.TubeGeometry(FP,120,.045,8,false),M(0xe8e8ee,{metalness:.4,roughness:.3}),0,0,0,0,0);
+const N=90,pp=new Float32Array(N*3),pc=new Float32Array(N*3),pg=new THREE.BufferGeometry();
+pg.setAttribute('position',new THREE.BufferAttribute(pp,3));pg.setAttribute('color',new THREE.BufferAttribute(pc,3));
+const pts=new THREE.Points(pg,new THREE.PointsMaterial({size:.2,vertexColors:true,map:glow,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));pts.frustumCulled=false;sc.add(pts);
+
+/* ---------- gaya 2D (toon + garis tepi), lingkungan, aset ---------- */
+const EV={siang:{sky:['#4f9be0','#a8d6f2','#f3ead2'],fog:0xcfe6f2,fd:[18,48],hl:[0xdcefff,0x6a8a4a,.55],dl:[0xfff0d0,.75],gr:0xffffff},
+pagi:{sky:['#ffb27a','#ffdcae','#fff3d6'],fog:0xffe6c8,fd:[12,40],hl:[0xffe6cc,0x7a8a4a,.55],dl:[0xffc98a,.7],gr:0xf2ffe0},
+sore:{sky:['#5a4b9c','#f08a5a','#ffcf88'],fog:0xf2b888,fd:[14,42],hl:[0xffb890,0x6a6a3a,.5],dl:[0xff8a4a,.8],gr:0xe6d6a0},
+malam:{sky:['#04051a','#0e1740','#1c2b5a'],fog:0x0b1030,fd:[10,34],hl:[0x6677bb,0x1a2a3a,.55],dl:[0x9aa8ff,.35],gr:0x5a6a8a,star:1},
+hujan:{sky:['#5f6a74','#8a959e','#b6bec4'],fog:0x9aa4ab,fd:[8,30],hl:[0xc0ccd6,0x4a5a4a,.6],dl:[0xcfd8e0,.4],gr:0x9aa8a0,rain:1},
+berkabut:{sky:['#b9c4c9','#d3dbde','#e6ebec'],fog:0xdde3e5,fd:[3,16],hl:[0xe6eef0,0x7a8a7a,.65],dl:[0xf0f4f4,.5],gr:0xcfdccf}};
+const skyT=a=>tex(8,256,(x,w,h)=>{const q=x.createLinearGradient(0,0,0,h);q.addColorStop(0,a[0]);q.addColorStop(.55,a[1]);q.addColorStop(1,a[2]);x.fillStyle=q;x.fillRect(0,0,w,h)});
+const rn=360,rp=new Float32Array(rn*6),rg=new THREE.BufferGeometry();for(let i=0;i<rn;i++){const x=(Math.random()-.5)*26,z=Math.random()*16-4,y=Math.random()*12;rp.set([x,y,z,x-.05,y+.45,z],i*6)}
+rg.setAttribute('position',new THREE.BufferAttribute(rp,3));const rain=new THREE.LineSegments(rg,new THREE.LineBasicMaterial({color:0xcfe3f5,transparent:true,opacity:.55,fog:false}));rain.frustumCulled=false;rain.visible=false;sc.add(rain);
+const stars=new THREE.Group(),sp=[];for(let i=0;i<160;i++){const r=Math.random();sp.push((Math.random()-.5)*120,8+r*50,-(40+Math.random()*30))}
+const stg=new THREE.BufferGeometry();stg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));stars.add(new THREE.Points(stg,new THREE.PointsMaterial({size:2.6,sizeAttenuation:false,color:0xffffff,fog:false})));
+const moon=new THREE.Mesh(new THREE.SphereGeometry(3,16,12),new THREE.MeshBasicMaterial({color:0xfff6d0,fog:false}));moon.position.set(-18,32,-60);stars.add(moon);stars.visible=false;sc.add(stars);
+let curE='';function setEnv(n){if(!EV[n])n='siang';if(n==curE)return;curE=n;const e=EV[n];skyM.map=skyT(e.sky);skyM.needsUpdate=true;sc.fog.color.set(e.fog);sc.fog.near=e.fd[0];sc.fog.far=e.fd[1];hl.color.set(e.hl[0]);hl.groundColor.set(e.hl[1]);hl.intensity=e.hl[2];dl.color.set(e.dl[0]);dl.intensity=e.dl[1];GM.material.color.set(e.gr);rain.visible=!!e.rain;stars.visible=!!e.star}
+const AB={
+bangku:g=>{add(new THREE.BoxGeometry(1.4,.12,.45),M(0x8a6a44),0,.5,0,g);[-.6,.6].forEach(x=>add(new THREE.BoxGeometry(.12,.5,.4),M(0x5c4329),x,.25,0,g))},
+ember:g=>{add(new THREE.CylinderGeometry(.22,.17,.34,14),M(0x4a90c8),0,.17,0,g);add(new THREE.TorusGeometry(.2,.02,6,14),M(0xcccccc),0,.4,0,g).rotation.x=1.2},
+bunga:g=>{for(let i=0;i<5;i++){const x=(i-2)*.2,z=(i%2)*.15;add(new THREE.CylinderGeometry(.015,.015,.4,5),M(0x3f8f3f),x,.2,z,g,0);add(new THREE.SphereGeometry(.09,8,6),M([0xff6b8a,0xffd34a,0xffffff,0xc77dff,0xff9a3c][i]),x,.45,z,g,0)}},
+ayam:g=>{add(new THREE.SphereGeometry(.22,10,8),M(0xf5f0e6),0,.3,0,g).scale.set(1.2,1,.9);add(new THREE.SphereGeometry(.12,8,6),M(0xf5f0e6),.2,.5,0,g);add(new THREE.ConeGeometry(.04,.1,5).rotateZ(-1.57),M(0xffa500),.34,.5,0,g,0);add(new THREE.SphereGeometry(.05,6,5),M(0xe23a2f),.2,.63,0,g,0);g.userData.an=A=>{g.position.y=Math.abs(Math.sin(A*5+g.position.x))*.08}},
+pohon:g=>{add(new THREE.CylinderGeometry(.15,.22,1.8,8),M(0x6b4a2f),0,.9,0,g);add(new THREE.IcosahedronGeometry(1,1),M(0x3f8f3f),0,2.3,0,g)},
+lampu:g=>{add(new THREE.CylinderGeometry(.05,.05,1.6,6),M(0x4a3a2a),0,.8,0,g);add(new THREE.SphereGeometry(.14,10,8),M(0xfff2a0),0,1.7,0,g,0);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:0xffc866,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.set(1.6,1.6,1);s.position.y=1.7;g.add(s)},
+kincir:g=>{add(new THREE.CylinderGeometry(.04,.04,1.3,6),M(0x8a6a44),0,.65,0,g);const r=new THREE.Group();r.position.set(0,1.3,.05);g.add(r);for(let i=0;i<4;i++){const b=add(new THREE.BoxGeometry(.5,.18,.02),M([0xe74c3c,0xf1c40f,0x3498db,0x2ecc71][i]),0,0,0,r,0);b.position.set(Math.cos(i*1.57)*.25,Math.sin(i*1.57)*.25,0);b.rotation.z=i*1.57}g.userData.an=A=>{r.rotation.z=A*3}},
+batu:g=>{add(new THREE.DodecahedronGeometry(.4,0),M(0x8f8a80),0,.3,0,g).scale.y=.7}};
+const POOL={};for(const n in AB)POOL[n]=[0,1,2].map(()=>{const g=new THREE.Group();AB[n](g);g.visible=false;sc.add(g);return g});
+function setObjs(a){const u={};for(const n in POOL)POOL[n].forEach(g=>g.visible=false);a.slice(0,8).forEach(o=>{if(!POOL[o.n])return;const k=u[o.n]=u[o.n]||0;if(k>2)return;u[o.n]++;POOL[o.n][k].visible=true;POOL[o.n][k].position.set(o.x,POOL[o.n][k].userData.an?POOL[o.n][k].position.y:0,o.z)})}
+function envUpd(dt,A){if(rain.visible){for(let i=0;i<rn;i++){let y=rp[i*6+1]-dt*13;if(y<0)y+=12;rp[i*6+1]=y;rp[i*6+4]=y+.45}rg.attributes.position.needsUpdate=true}
+ for(const n in POOL)POOL[n].forEach(g=>{if(g.visible&&g.userData.an)g.userData.an(A)})}
+
+/* ---------- karakter ---------- */
+function mk(o){const G=new THREE.Group(),sk=M(o.skin),sh=M(o.shirt),pn=M(o.pants);
+ add(new THREE.CylinderGeometry(.27,.31,.68,14),sh,0,.95,0,G);
+ const legs=[-1,1].map(d=>{const h=new THREE.Group();h.position.set(d*.13,.62,0);G.add(h);add(new THREE.CylinderGeometry(.1,.09,.6,10),pn,0,-.3,0,h);add(new THREE.SphereGeometry(.11,8,6),M(0x222222),0,-.58,.05,h).scale.set(1,.6,1.4);return h});
+ const arms=[-1,1].map(d=>{const a=new THREE.Group();a.position.set(d*.37,1.22,0);G.add(a);add(new THREE.CylinderGeometry(.075,.07,.55,8),sh,0,-.27,0,a);add(new THREE.SphereGeometry(.085,8,8),sk,0,-.58,0,a);return a});
+ const Hd=new THREE.Group();Hd.position.y=1.66;G.add(Hd);add(new THREE.SphereGeometry(.44,20,16),sk,0,0,0,Hd).scale.set(1,.95,1);
+ [-1,1].forEach(d=>{add(new THREE.SphereGeometry(.1,10,8),M(0xffffff),d*.16,.04,.36,Hd,0);add(new THREE.SphereGeometry(.055,8,8),M(0x111111),d*.16,.04,.43,Hd,0)});
+ const mouth=add(new THREE.SphereGeometry(.09,10,8),M(0x7a1f2a),0,-.2,.4,Hd,0);mouth.scale.set(1,.15,.4);
+ add(new THREE.SphereGeometry(.46,16,12,0,6.283,0,1.5),M(o.hc),0,.03,-.03,Hd);
+ if(o.type=='girl')[-1,1].forEach(d=>add(new THREE.SphereGeometry(.14,10,8),M(o.hc),d*.44,-.08,-.05,Hd));
+ if(o.type=='old'){add(new THREE.CylinderGeometry(.3,.32,.28,16),M(0x151515),0,.5,0,Hd);add(new THREE.BoxGeometry(.32,.06,.06),M(0xdddddd),0,-.12,.42,Hd,0)}
+ G.scale.setScalar(o.s||1);sc.add(G);
+ return{G,legs,arms,Hd,mouth,pos:new THREE.Vector3(),tgt:new THREE.Vector3(),yaw:0}}
+const CH={bima:mk({skin:0xe0a878,shirt:0xe74c3c,pants:0x2c3e50,hc:0x151515,type:'boy',s:.82}),
+ sari:mk({skin:0xe8b48a,shirt:0xf39ac4,pants:0x6c5ce7,hc:0x3b2417,type:'girl',s:.82}),
+ kakek:mk({skin:0xd69a6b,shirt:0x2e8b6f,pants:0x6b4a2f,hc:0xeeeeee,type:'old',s:1.08})};
+const ang=(a,b)=>{const d=b-a;return Math.atan2(Math.sin(d),Math.cos(d))};
+function upd(c,dt,A,open,an,spk,fx,fz){
+ const d=c.tgt.clone().sub(c.pos);d.y=0;const dist=d.length(),mv=dist>.07;
+ if(mv){c.pos.add(d.clone().normalize().multiplyScalar(Math.min(dist,1.8*dt)));c.yaw+=ang(c.yaw,Math.atan2(d.x,d.z))*Math.min(1,dt*10)}
+ else c.yaw+=ang(c.yaw,Math.atan2(fx-c.pos.x,fz-c.pos.z))*Math.min(1,dt*6);
+ const hop=!mv&&spk&&(an=='jump'||an=='cheer')?Math.abs(Math.sin(A*6))*.3:0;
+ c.G.position.set(c.pos.x,hop+Math.sin(A*2+c.pos.x)*.01,c.pos.z);c.G.rotation.y=c.yaw;
+ const s=Math.sin(A*10)*.7;c.legs[0].rotation.x=mv?s:0;c.legs[1].rotation.x=mv?-s:0;
+ let a0=mv?-s*.6:Math.sin(A*1.5)*.03,a1=mv?s*.6:-Math.sin(A*1.5)*.03;
+ if(spk&&!mv){if(an=='point'){a1=-1.5}else if(an=='cheer'||an=='jump'){a0=a1=-3.0+Math.sin(A*8)*.2}else{a1=-.5+Math.sin(A*5)*.25;a0=Math.sin(A*3.3)*.12}}
+ c.arms[0].rotation.x=a0;c.arms[1].rotation.x=a1;c.mouth.scale.y=.15+open*1.1;c.Hd.rotation.z=Math.sin(A*3+c.pos.z)*.03}
+
+/* ---------- jadwal & suara ---------- */
+let BUF=[],ENV=[],D=[],ST=[],TOT=1;const LEAD=1.8;
+function plan(){let a=LEAD;D=SCR.map((l,i)=>BUF[i]?BUF[i].duration+.45:Math.max(2.6,l[1].length/14));ST=D.map(d=>{const s=a;a+=d;return s});TOT=a+1.6}plan();
+function mkEnv(b){const ch=b.getChannelData(0),n=Math.floor(b.sampleRate*.04),e=[];for(let i=0;i+n<=ch.length;i+=n){let s=0;for(let k=0;k<n;k+=4)s+=ch[i+k]*ch[i+k];e.push(Math.sqrt(s/(n/4)))}const mx=Math.max(...e,1e-4);return e.map(v=>Math.min(1,v/(mx*.5)))}
+let AC=null,DEST=null;const ctx=()=>{if(!AC){AC=new AudioContext();DEST=AC.createMediaStreamDestination()}return AC};
+async function tts(text,voice){
+ const rot=()=>{if(CFG.ks.length>1){CFG.ki=(CFG.ki+1)%CFG.ks.length;return true}return false};
+ for(let k=0;k<4+CFG.ks.length;k++){
+  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+CFG.m+':generateContent?key='+encodeURIComponent(CFG.ks[CFG.ki]),
+   {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}})});
+  if([401,403,429].includes(r.status)&&rot())continue;
+  if(r.status==429||r.status==503){st('Kuota/sibuk, menunggu 15 dtk...');await new Promise(z=>setTimeout(z,15000));continue}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||'HTTP '+r.status);
+  const p=(((j.candidates||[])[0]||{}).content||{}).parts.find(x=>x.inlineData);if(!p)throw new Error('jawaban tanpa audio');
+  const b=atob(p.inlineData.data),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+  if(b.slice(0,4)=='RIFF')return await ctx().decodeAudioData(u.buffer);
+  const rate=+((/rate=(\d+)/.exec(p.inlineData.mimeType||'')||[])[1]||24000),n=u.length>>1,dv=new DataView(u.buffer),ab=ctx().createBuffer(1,n,rate),ch=ab.getChannelData(0);
+  for(let i=0;i<n;i++)ch[i]=dv.getInt16(i*2,true)/32768;return ab}
+ throw new Error('batas kuota tercapai')}
+$('bs').onclick=async()=>{save();if(!CFG.ks.length){st('Isi API key Gemini dulu di bagian Suara AI.');return}
+ $('bs').disabled=true;try{BUF=[];ENV=[];for(let i=0;i<SCR.length;i++){st('Membuat suara '+(i+1)+'/'+SCR.length+'...');BUF[i]=await tts(SCR[i][1],CFG.v[SCR[i][0]]);ENV[i]=mkEnv(BUF[i])}plan();st('Suara siap. Durasi '+TOT.toFixed(0)+' dtk'+(TOT>120?' (MELEBIHI 2 menit, pendekkan dialog)':' (maks 120).'))}
+ catch(e){BUF=[];ENV=[];plan();st('Gagal: '+(e.message||e))}$('bs').disabled=false};
+
+/* ---------- kamera & frame ---------- */
+const SHOT={wide:()=>[[0,3.6,11],[0,1.3,0]],pond:()=>[[-1.2,2.4,5.6],[-2.6,1,.8]],filter:()=>[[1.6,2.1,4.6],[1,1.1,.3]],bed:()=>[[3.4,2.6,5.6],[3.6,1.4,.6]]};
+let S=2.4,lastT=-1,tp=new THREE.Vector3(),tl=new THREE.Vector3(),cl2=new THREE.Vector3(),v3=new THREE.Vector3();
+function reset(){S=SCR[0][3];for(const k in CH){CH[k].pos.set(...[P0[k][0],0,P0[k][1]]);CH[k].tgt.copy(CH[k].pos);CH[k].yaw=0}cam.position.set(0,3.6,11);cl2.set(0,1.3,0);lastT=-1}reset();
+function frame(t,A){
+ let dt=lastT<0||t<lastT?0:Math.min(t-lastT,.1);if(t<lastT)reset();lastT=t;
+ let i=ST.findIndex((s,k)=>t<s+D[k]);if(i<0)i=SCR.length-1;const L=SCR[i];let ei=i;while(ei>0&&SCR[ei][6]===undefined)ei--;let oi=i;while(oi>0&&SCR[oi][7]===undefined)oi--;setEnv($('ev').value||SCR[ei][6]||'siang');setObjs(SCR[oi][7]||[]);envUpd(dt,A);
+ if(L[5])for(const k in L[5])CH[k].tgt.set(L[5][k][0],0,L[5][k][1]);
+ const ls=t-ST[i]-.1,dur=BUF[i]?BUF[i].duration:D[i]*.85,talking=t>=ST[0]&&ls>=0&&ls<dur;
+ let open=0;if(talking)open=ENV[i]&&ENV[i].length?(ENV[i][Math.floor(ls/.04)]||0):Math.abs(Math.sin(A*14))*.8;
+ S+=(L[3]-S)*Math.min(1,dt*1.2);
+ const sp=CH[L[0]];let shot=L[2]=='spk'?[[sp.pos.x+.9,1.9,sp.pos.z+3.4],[sp.pos.x,1.25,sp.pos.z]]:SHOT[L[2]]();
+ if(t<ST[0])shot=SHOT.wide();
+ tp.set(...shot[0]);tl.set(...shot[1]);const k=1-Math.exp(-dt*2.6);cam.position.lerp(tp,k);cl2.lerp(tl,k);v3.copy(cl2);v3.x+=Math.sin(A*.7)*.04;cam.lookAt(v3);
+ for(const n in CH){const c=CH[n];upd(c,dt,A,n==L[0]?open:0,L[4],n==L[0],n==L[0]?CH.sari.pos.x*.5+CH.bima.pos.x*.5:sp.pos.x,n==L[0]?CH.kakek.pos.z+3:sp.pos.z)}
+ const wa=wg.attributes.position.array;for(let q=0;q<wa.length;q+=3)wa[q+1]=Math.sin(wp0[q]*3+A*2)*.015+Math.cos(wp0[q+2]*3.4+A*1.7)*.015;wg.attributes.position.needsUpdate=true;wg.computeVertexNormals();
+ wmat.color.set(0x3aa0d8).lerp(new THREE.Color(0x7d8f4a),ea(cl((S-2)/.8))*(1-ea(cl((S-3.6)/1.2)))*.9);
+ const spd=.22+.5*cl((S-3.6)/1.2);fish.forEach((f,n)=>{const a=A*(spd+n*.05)+n*1.6,r=.5+(n%3)*.35;f.position.set(Math.cos(a)*r,.55+(n%2)*.2+Math.sin(A+n)*.04,Math.sin(a)*r);f.rotation.y=-(a+Math.PI/2);f.rotation.z=S<3.4?.25:0;f.userData.t.rotation.y=Math.sin(A*(S<3.4?4:9)+n)*.5});
+ const gk=ea(cl((S-4)/1.2));PL.forEach((q,n)=>q.scale.setScalar(.3+.7*gk));
+ const bk=cl(S-3);fb.forEach((b,n)=>b.material.color.setHSL(.3,.5*bk,.3+.1*Math.sin(A*3+n)*bk));
+ pts.visible=S>2.9;for(let n=0;n<N;n++){const q=(n/N+A*.06)%1;FP.getPoint(q,v3);pp[n*3]=v3.x;pp[n*3+1]=v3.y;pp[n*3+2]=v3.z;
+  const c=S>4.3?(q>.15?[.25,.9,.4]:[.95,.85,.2]):q<.3?[.55,.33,.15]:q<.55?[.95,.85,.2]:[.25,.9,.4];pc.set(c,n*3)}
+ pg.attributes.position.needsUpdate=pg.attributes.color.needsUpdate=true;
+ ren.render(sc,cam);g.drawImage(ren.domElement,0,0,W,H);
+ const vg=g.createRadialGradient(W/2,H/2,H*.3,W/2,H/2,H*.72);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,10,20,.4)');g.fillStyle=vg;g.fillRect(0,0,W,H);
+ g.textAlign='center';
+ if(t<ST[0]+.4){g.globalAlpha=cl(Math.min(t*2,(ST[0]+.4-t)*2));g.fillStyle='#fff';g.shadowColor='rgba(0,0,0,.7)';g.shadowBlur=16;g.font='800 62px system-ui,sans-serif';g.fillText('KEKDARMO',W/2,300);g.font='500 34px system-ui,sans-serif';g.fillText('Episode '+EP.no+': '+EP.judul,W/2,355);g.shadowBlur=0;g.globalAlpha=1}
+ if(t>=ST[0]-.2&&t<TOT-1.6)subs(L,ls,dur);
+ if(t>TOT-1.6){g.globalAlpha=cl((t-TOT+1.6)/.6);g.fillStyle='#000';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.font='800 56px system-ui,sans-serif';g.fillText('TAMAT',W/2,H/2);g.globalAlpha=1}}
+
+/* ---------- kekdarmo: cerita AI berkelanjutan, metadata, upload YouTube ---------- */
+let LASTV=null;const CAM=['pond','filter','bed','wide','spk'],AO=['talk','point','cheer','jump'];
+const POS={pond:{bima:[-3.6,2.7],sari:[-2.6,3.2],kakek:[-1.2,2.9]},filter:{kakek:[.3,2.3],bima:[-.6,2.9],sari:[1.7,2.9]},bed:{kakek:[2.7,2.2],bima:[4.0,2.4],sari:[3.4,2.9]},wide:{kakek:[.6,3.6],bima:[-.8,4.2],sari:[1.8,4.2]}};
+const est=a=>a.reduce((s,l)=>s+Math.max(2.6,l[1].length/13+.45),LEAD+1.6);
+const showE=()=>{$('eps').textContent='Episode: '+EPS.map(e=>e.no+'. '+e.judul+(e.d?' (draf)':'')).join(' | ')+'. Dibuka: Ep.'+EP.no};
+$('sm').value=CFG.sm;$('cid').value=CFG.cid;$('pv').value=CFG.pv;
+if(EP.yt){$('yt').value=EP.yt.t||'';$('yd').value=EP.yt.d||'';$('yg').value=EP.yt.g||''}
+['yt','yd','yg'].forEach(i=>$(i).oninput=()=>{EP.yt={t:$('yt').value,d:$('yd').value,g:$('yg').value};svE()});showE();
+async function gem(sys,user,json){
+ for(let k=0;k<4+CFG.ks.length;k++){
+  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+CFG.sm+':generateContent?key='+encodeURIComponent(CFG.ks[CFG.ki]),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:Object.assign({temperature:.9},json?{responseMimeType:'application/json'}:{})})});
+  if([401,403,429].includes(r.status)&&CFG.ks.length>1){CFG.ki=(CFG.ki+1)%CFG.ks.length;continue}
+  if(r.status==429||r.status==503){st('Sibuk, menunggu 15 dtk...');await new Promise(z=>setTimeout(z,15000));continue}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||'HTTP '+r.status);
+  let t=(((j.candidates||[])[0]||{}).content||{}).parts;t=(t||[]).map(p=>p.text||'').join('').replace(/^\s*```(?:json)?\s*|\s*```\s*$/g,'');
+  if(!t)throw new Error('jawaban kosong');if(!json)return t;
+  try{return JSON.parse(t)}catch(e){const m=/[\[{][\s\S]*[\]}]/.exec(t);if(m)return JSON.parse(m[0]);throw new Error('JSON tidak valid')}}
+ throw new Error('batas kuota tercapai')}
+$('gs').onclick=async()=>{save();if(!CFG.ks.length){st('Isi API key Gemini dulu di bagian Suara AI.');return}
+ $('gs').disabled=true;try{EPS=EPS.filter(e=>!e.d);const no=EPS[EPS.length-1].no+1;
+  const prev=EPS.map(e=>'Ep.'+e.no+' "'+e.judul+'": '+e.ringkas+' (kalimat penutup: "'+e.akhir+'")').join('\n');
+  const idea=$('ide').value.trim()||'pilih topik sains atau alam sederhana yang belum dibahas, dengan masalah kecil di kampung';
+  const sys='Kamu penulis skenario seri animasi edukasi anak berbahasa Indonesia untuk video vertikal YouTube Shorts. Tokoh tetap: Bima (anak laki-laki, penasaran, ceria), Sari (anak perempuan, cerdas, suka merangkum), Kakek Darmo (bijak, sabar, menjelaskan sains lewat contoh nyata). Dunia tetap: kolam ikan, filter bakteri, bedeng sayur, rumah Kakek di kampung. Cerita WAJIB konsisten dengan episode sebelumnya: sifat tokoh, fakta yang sudah diajarkan, dan dunianya sama. Boleh merujuk kejadian sebelumnya, jangan mengulang topik yang sudah selesai, jangan membantah fakta lama. Kalimat pendek, hidup, enak diucapkan, penutup hangat.';
+  const msg='EPISODE SEBELUMNYA (urut):\n'+prev+'\n\nTULIS EPISODE '+no+'. Arahan: '+idea+'\n\nBatas keras: video vertikal maks. 2 menit, jadi total seluruh dialog maksimal 1250 karakter, 10 sampai 13 baris, tiap baris maksimal 110 karakter. Baris 1 adalah hook yang memancing penasaran. Satu pelajaran sains yang jelas dan lanjutan wajar dari episode sebelumnya.\nKamera: pond (kolam), filter, bed (bedeng sayur), wide (luas), spk (dekat pembicara). Aksi: talk, point, cheer, jump.\nLingkungan (e): '+Object.keys(EV).join(', ')+'. Aset (o): '+Object.keys(AB).join(', ')+'. o = daftar aset yang tampak di baris itu (x -6..6, z 0..5), ulangi aset yang masih ada, [] untuk mengosongkan. Pilih lingkungan dan aset yang cocok dengan alur cerita (mis. malam dengan lampu, hujan dengan ember), jangan berlebihan dan jangan ganti lingkungan tanpa alasan cerita.\nBalas HANYA JSON: {"judul":"judul episode pendek","ringkasan":"maks 60 kata: apa yang terjadi dan apa yang dipelajari","baris":[{"t":"bima|sari|kakek","d":"dialog","k":"pond","a":"talk","tahap":5,"e":"siang","o":[{"n":"ayam","x":2,"z":3}]}]}. tahap selalu 5 (kolam sehat) kecuali ceritanya memang tentang kolam bermasalah (2.4 sampai 5).';
+  let out=null,j=null,w=0;
+  for(let a=0;a<3;a++){st('Gemini menulis episode '+no+(a?' (diperpendek)':'')+'...');
+   j=await gem(sys,msg+(a?'\nPERCOBAAN SEBELUMNYA TERLALU PANJANG ('+Math.round(w)+' dtk). Buat lebih pendek.':''),true);
+   let pk=null;out=(j.baris||[]).filter(l=>l&&l.d).slice(0,14).map(l=>{const t=NM[l.t]?l.t:'kakek',k=CAM.includes(l.k)?l.k:'spk',r=[t,String(l.d).trim(),k,Math.min(5,Math.max(2.4,+l.tahap||5)),AO.includes(l.a)?l.a:'talk',null,EV[l.e]?l.e:undefined,Array.isArray(l.o)?l.o.filter(q=>q&&AB[q.n]).slice(0,6).map(q=>({n:q.n,x:Math.max(-6,Math.min(6,+q.x||0)),z:Math.max(0,Math.min(5,+q.z||2))})):undefined];if(k!='spk'&&k!=pk&&POS[k])r[5]=POS[k];if(k!='spk')pk=k;return r});
+   if(!out.length)throw new Error('naskah kosong');w=est(out);if(w<=112)break}
+  while(out.length>8&&est(out)>115)out.splice(out.length-2,1);
+  const jd=String(j.judul||'Episode '+no).trim().slice(0,60);
+  SCR.length=0;out.forEach(l=>SCR.push(l));EP.no=no;EP.judul=jd;EP.yt=null;['yt','yd','yg'].forEach(i=>$(i).value='');
+  EPS.push({no,judul:jd,ringkas:String(j.ringkasan||'').slice(0,500),akhir:out[out.length-1][1],d:1});svE();showE();
+  $('tx').value=ftext();BUF=[];ENV=[];plan();reset();
+  st('Episode '+no+' "'+jd+'" siap (perkiraan '+Math.round(est(out))+' dtk). Lanjut: Siapkan suara, Rekam video, lalu Upload. Tekan Kunci episode bila sudah final.')}
+ catch(e){st('Gagal: '+(e.message||e))}$('gs').disabled=false};
+$('gk').onclick=()=>{EPS.forEach(e=>delete e.d);svE();showE();st('Episode dikunci. Episode berikutnya akan melanjutkan dari sini.')};
+$('gm').onclick=async()=>{save();if(!CFG.ks.length){st('Isi API key Gemini dulu.');return}$('gm').disabled=true;
+ try{st('AI menulis judul dan deskripsi...');
+  const j=await gem('Kamu pengelola kanal YouTube Shorts edukasi anak berbahasa Indonesia yang ahli SEO. Balas JSON: {"judul":"maks 90 karakter, menarik, kata kunci di depan, tidak menipu","deskripsi":"3 sampai 5 kalimat tentang isi dan pelajaran, ajakan subscribe untuk episode berikutnya, 3 sampai 5 hashtag","tag":["maks 12 tag"]}','Seri Kekdarmo, Episode '+EP.no+' "'+EP.judul+'".\nRingkasan: '+((EPS.find(e=>e.no==EP.no)||{}).ringkas||'')+'\nNaskah:\n'+SCR.map(l=>NM[l[0]]+': '+l[1]).join('\n'),true);
+  let t=String(j.judul||EP.judul).trim(),d=String(j.deskripsi||'').trim();if(!/#shorts/i.test(t)&&t.length<=90)t+=' #Shorts';if(!/#shorts/i.test(d))d+='\n#Shorts';
+  $('yt').value=t.slice(0,100);$('yd').value=d.slice(0,4900);$('yg').value=(j.tag||[]).join(', ').slice(0,450);$('yt').oninput();st('Judul, deskripsi, dan tag siap. Periksa lalu upload.')}
+ catch(e){st('Gagal: '+(e.message||e))}$('gm').disabled=false};
+let YT=null,YX=0;
+const ytTok=()=>new Promise((ok,no)=>{if(YT&&Date.now()<YX)return ok(YT);
+ if(location.protocol==='file:')return no(new Error('Login Google tidak jalan dari file://. Buka lewat http(s) yang origin-nya terdaftar di Client ID.'));
+ if(!window.google||!google.accounts)return no(new Error('Pustaka Google Sign-In belum termuat (cek internet).'));
+ google.accounts.oauth2.initTokenClient({client_id:CFG.cid,scope:'https://www.googleapis.com/auth/youtube.upload',callback:r=>{if(r.error)return no(new Error('Login ditolak: '+(r.error_description||r.error)));YT=r.access_token;YX=Date.now()+(r.expires_in-60)*1000;ok(YT)},error_callback:e=>no(new Error('Popup login gagal ('+(e.type||'error')+')'))}).requestAccessToken({prompt:''})});
+const xr=(m,u,h,b,pg)=>new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open(m,u);for(const k in h)x.setRequestHeader(k,h[k]);if(pg)x.upload.onprogress=pg;x.onload=()=>ok(x);x.onerror=()=>no(new Error('jaringan terputus'));x.send(b||null)});
+$('yu').onclick=async()=>{save();if(!LASTV){st('Rekam video dulu (tombol Rekam video).');return}
+ if(TOT>120.5){st('Durasi '+TOT.toFixed(0)+' dtk melebihi batas 2 menit.');return}
+ $('yu').disabled=true;try{const tok=await ytTok(),bl=LASTV.bl,sz=bl.size,tags=$('yg').value.split(',').map(s=>s.trim()).filter(Boolean);
+  let x=await xr('POST','https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{'Authorization':'Bearer '+tok,'Content-Type':'application/json; charset=UTF-8','X-Upload-Content-Length':String(sz),'X-Upload-Content-Type':'video/'+LASTV.ext},JSON.stringify({snippet:{title:($('yt').value||'Kekdarmo Ep.'+EP.no).slice(0,100),description:$('yd').value,tags,categoryId:'27',defaultLanguage:'id'},status:{privacyStatus:CFG.pv,selfDeclaredMadeForKids:$('mk').value=='1'}}));
+  if(x.status!==200)throw new Error('Gagal memulai upload (HTTP '+x.status+': '+x.responseText.slice(0,150)+')');
+  const loc=x.getResponseHeader('Location'),C=8<<20;let off=0,fail=0;
+  while(off<sz){const end=Math.min(off+C,sz),o0=off;
+   try{x=await xr('PUT',loc,{'Content-Range':'bytes '+off+'-'+(end-1)+'/'+sz},bl.slice(off,end),e=>st('Mengunggah '+Math.floor((o0+e.loaded)/sz*100)+'%'))}catch(e){x={status:0,getResponseHeader:()=>null}}
+   if(x.status==200||x.status==201){const id=JSON.parse(x.responseText).id;st('Terunggah ('+CFG.pv+'): https://youtu.be/'+id);EPS.forEach(e=>delete e.d);svE();showE();$('yu').disabled=false;return}
+   if(x.status==308){fail=0;const m=/bytes=0-(\d+)/.exec(x.getResponseHeader('Range')||'');off=m?+m[1]+1:end;continue}
+   if(++fail>6)throw new Error('Upload gagal berulang (HTTP '+x.status+')');
+   await new Promise(z=>setTimeout(z,2000*fail));const q=await xr('PUT',loc,{'Content-Range':'bytes */'+sz}).catch(()=>({status:0}));
+   if(q.status==308){const m=/bytes=0-(\d+)/.exec(q.getResponseHeader('Range')||'');off=m?+m[1]+1:0}}}
+ catch(e){st('Upload gagal: '+(e.message||e))}$('yu').disabled=false};
+
+/* ---------- subtitle: Pop / Kotak / Mati ---------- */
+const SUBC={bima:'#ff8a7a',sari:'#ff9ed2',kakek:'#7be0a8'},SM=['pop','box','off'],SN={pop:'Pop',box:'Kotak',off:'Mati'};
+$('bt').textContent='Subtitle: '+SN[CFG.sub];$('bt').onclick=()=>{CFG.sub=SM[(SM.indexOf(CFG.sub)+1)%3];$('bt').textContent='Subtitle: '+SN[CFG.sub];try{localStorage.setItem('vcfg',JSON.stringify(CFG))}catch(e){}};
+const rr=(x,y,w,h,r)=>{g.beginPath();g.roundRect?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h)};
+function subs(L,ls,dur){const m=CFG.sub;if(m=='off')return;
+ const ws=L[1].split(' '),wk=cl(ls/dur)*ws.length,ci=Math.min(ws.length-1,Math.floor(wk)),pop=m!='box',CS=pop?4:99,c0=Math.floor(ci/CS)*CS,seg=ws.slice(c0,c0+CS),fs=pop?68:40,lh=fs*1.3;
+ g.font='900 '+fs+'px system-ui,sans-serif';const lines=[];let cur=[];
+ seg.forEach((w,i)=>{if(cur.length&&g.measureText(cur.map(q=>q.w).concat(w).join(' ')).width>W-110){lines.push(cur);cur=[]}cur.push({w,i:c0+i})});lines.push(cur);
+ const y0=pop?H*.62:H-150-lines.length*lh,py=y0-fs-30;
+ if(!pop){g.fillStyle='rgba(8,16,22,.62)';rr(28,py-12,W-56,lines.length*lh+98,26);g.fill()}
+ g.font='800 30px system-ui,sans-serif';g.textAlign='center';const nw=g.measureText(NM[L[0]]).width+44;g.fillStyle=SUBC[L[0]];rr(W/2-nw/2,py,nw,46,23);g.fill();g.fillStyle='#10141a';g.fillText(NM[L[0]],W/2,py+33);
+ g.textAlign='left';g.lineJoin='round';g.font='900 '+fs+'px system-ui,sans-serif';
+ lines.forEach((ln,n)=>{const tw=g.measureText(ln.map(q=>q.w).join(' ')).width;let x=W/2-tw/2;const y=y0+n*lh;
+  ln.forEach(q=>{const cw=g.measureText(q.w).width,on=q.i==ci,k=pop&&on?1+.18*Math.max(0,1-(wk-ci)*5):1;g.save();g.translate(x+cw/2,y-fs*.3);g.scale(k,k);
+   if(pop){g.lineWidth=fs*.24;g.strokeStyle='#000';g.strokeText(q.w,-cw/2,fs*.3)}
+   g.fillStyle=pop?(on?'#ffe14a':'#fff'):(q.i<=ci?'#ffe27a':'rgba(255,255,255,.55)');g.fillText(q.w,-cw/2,fs*.3);g.restore();x+=g.measureText(q.w+' ').width})});
+ g.textAlign='center'}
+
+/* ---------- putar & rekam ---------- */
+let play=false,base=0,srcs=[],rec=null;
+function stop(){play=false;srcs.forEach(s=>{try{s.stop()}catch(e){}});srcs=[]}
+async function run(record){
+ if(record&&TOT>120.5){st('Durasi '+TOT.toFixed(0)+' dtk melebihi batas 2 menit. Pendekkan dialog.');return}stop();const a=ctx();await a.resume();reset();base=a.currentTime+.4;
+ BUF.forEach((b,i)=>{if(!b)return;const s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.connect(DEST);s.start(base+ST[i]+.1);srcs.push(s)});
+ if(record){if(!window.MediaRecorder){st('Browser tidak mendukung perekaman.');return}
+  const mt=['video/mp4;codecs=avc1,mp4a.40.2','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+  const ms=new MediaStream([...cv.captureStream(30).getVideoTracks(),...DEST.stream.getAudioTracks()]),ch=[];
+  rec=new MediaRecorder(ms,mt?{mimeType:mt,videoBitsPerSecond:5e6}:{videoBitsPerSecond:5e6});
+  rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  rec.onstop=()=>{const ext=(rec.mimeType||'').includes('mp4')?'mp4':'webm',bl=new Blob(ch,{type:rec.mimeType}),u=URL.createObjectURL(bl);LASTV={bl,ext};
+   const l=document.createElement('a');l.href=u;l.download='kekdarmo-ep'+EP.no+'.'+ext;l.click();st('Video tersimpan: kekdarmo-ep'+EP.no+'.'+ext+(BUF.length?'':' (tanpa suara, siapkan suara dulu)'))};rec.start()}
+ play=true}
+$('bp').onclick=()=>run(false);$('br').onclick=()=>run(true);
+(function loop(){requestAnimationFrame(loop);const A=performance.now()/1000;let t;
+ if(play){t=AC.currentTime-base;if(t<0)t=0;if(t>=TOT){play=false;if(rec&&rec.state=='recording')rec.stop();t=TOT-.01;st('Selesai.')}else if(rec&&rec.state=='recording')st('Merekam '+Math.round(t/TOT*100)+'%')}
+ else t=.5;
+ frame(t,A)})();
+</script></body></html>
