@@ -1,21 +1,32 @@
 <!DOCTYPE html>
 <html lang="id"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Studio Film v8</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Studio Film v9</title>
 <style>
-:root{--bg:#f4f4f6;--fg:#15151a;--cd:#fff;--ac:#d9622b;--mu:#6b6b78;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root{--bg:#0e0e13;--fg:#f2f2f6;--cd:#181820;--ac:#ff8a4c;--mu:#9a9aa8}}
-*{box-sizing:border-box}body{margin:0;padding:12px;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;max-width:900px;margin-inline:auto}
-canvas{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}
+:root{--bg:#fff;--fg:#0f0f0f;--cd:#f2f2f2;--ac:#065fd4;--mu:#606060;--ln:#e0e0e0;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#0f0f0f;--fg:#f1f1f1;--cd:#272727;--ac:#3ea6ff;--mu:#aaa;--ln:#3a3a3a}}
+*{box-sizing:border-box}html{-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 Roboto,system-ui,-apple-system,sans-serif;padding-bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+main{max-width:960px;margin:0 auto}
+canvas{width:100%;aspect-ratio:16/9;background:#000;display:block}
 .r{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-button,select,input,textarea{font:inherit;color:var(--fg);background:var(--cd);border:1px solid var(--mu);border-radius:9px;padding:8px}
-button.p{background:var(--ac);border-color:var(--ac);color:#fff}button:disabled{opacity:.5}
-details{background:var(--cd);border-radius:10px;padding:10px;margin:8px 0}summary{cursor:pointer;font-weight:600}
-textarea{width:100%;margin-top:6px;font-family:ui-monospace,monospace;font-size:.8rem}label{font-size:.8rem;color:var(--mu)}#st{font-size:.85rem;color:var(--mu);min-height:1.3em}
+button,select,input,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:8px 10px}
+button{cursor:pointer}button.p{background:var(--fg);border-color:var(--fg);color:var(--bg);font-weight:500;border-radius:18px;padding:8px 16px}button:disabled{opacity:.5}
+input[type=checkbox]{padding:0;width:auto}
+textarea{width:100%;margin-top:6px;font-family:ui-monospace,monospace;font-size:.8rem}
+.card,details{background:var(--cd);border-radius:12px;padding:12px;margin:10px 0}.card h3{margin:0 0 6px;font-size:1rem}
+summary{cursor:pointer;font-weight:600}
+label{font-size:.8rem;color:var(--mu);display:block;margin-top:8px}.r label{margin:0}
+.hint{font-size:.78rem;color:var(--mu);margin-top:6px}.cnt{float:right;font-variant-numeric:tabular-nums}
 .it{display:flex;gap:6px;align-items:center;margin:4px 0}.it span{flex:1}
-
-.pl{position:relative;background:#000;border-radius:10px;overflow:hidden;line-height:0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.pl canvas{border-radius:0;cursor:pointer}
+.view{display:none}.view.on{display:block}.pad{padding:0 12px}
+#top{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;position:sticky;top:0;background:var(--bg);z-index:30;font-weight:700;font-size:1.1rem}
+body[data-tab=watch] #top{display:none}
+.plw{position:sticky;top:0;z-index:25;background:#000}
+.plw:has(.pf){z-index:100}body:has(.pf) #nav{display:none}
+@media(min-width:760px){.plw{position:static;margin-top:12px;border-radius:12px;overflow:hidden}}
+.pl{position:relative;background:#000;overflow:hidden;line-height:0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.pl canvas{cursor:pointer}
 .pl:fullscreen,.pl.pf{border-radius:0;display:flex;align-items:center;justify-content:center;width:100%;height:100%}
 .pl.pf{position:fixed;inset:0;z-index:99}
 .pl:fullscreen canvas,.pl.pf canvas{aspect-ratio:auto;width:100%;height:100%;object-fit:contain}
@@ -34,22 +45,46 @@ textarea{width:100%;margin-top:6px;font-family:ui-monospace,monospace;font-size:
 #mn{position:absolute;right:10px;bottom:64px;background:rgba(20,20,26,.95);border-radius:12px;padding:8px;display:flex;flex-direction:column;min-width:130px;line-height:1.3;font-size:.85rem;color:#fff}
 #mn[hidden]{display:none}#mn b{padding:4px 8px;font-weight:600;opacity:.7}#mn button{text-align:left;padding:7px 8px;font-size:.85rem;justify-items:start}#mn button.on{background:rgba(255,255,255,.18)}
 #ts{position:absolute;left:50%;top:14%;translate:-50% 0;background:rgba(0,0,0,.6);color:#fff;padding:4px 10px;border-radius:14px;font-size:.85rem;opacity:0;transition:opacity .2s;line-height:1.2;pointer-events:none}
-</style></head><body>
-<div id="pl" class="pl show"><canvas id="cv" width="1280" height="720"></canvas><button id="big" aria-label="Putar"></button><b id="ts"></b>
-<div id="ctl"><input id="sk" type="range" min="0" max="1000" value="0" aria-label="Posisi video"><div class="cr"><button id="pp" aria-label="Putar / jeda"></button><button id="pv" aria-label="Adegan sebelumnya"></button><button id="nx" aria-label="Adegan berikutnya"></button><span id="tt">0:00 / 0:00</span><i></i><button id="cc" aria-label="Subtitle">CC</button><button id="sg" aria-label="Kecepatan"></button><button id="fsb" aria-label="Layar penuh"></button></div><div id="mn" hidden></div></div></div>
-<div class="r"><button id="bp" class="p">Putar</button><button id="bs">Siapkan suara</button><button id="br">Ekspor MP4 1080p</button><button id="yb">Upload ke YouTube</button></div>
-<div class="r"><label>Kecepatan <select id="spd"></select></label><button id="wl">Layar: Off</button><label>Subtitle <select id="sub"><option value="1">Aktif</option><option value="0">Mati</option></select></label><label>Adegan <input id="fs" type="number" value="1" min="1" style="width:64px"></label><button id="bf">Putar dari adegan</button></div>
-<div id="st"></div>
-<details open><summary>Film (naskah JSON)</summary><textarea id="js" rows="12"></textarea>
-<div class="r"><button id="ba">Terapkan naskah</button><button id="bx">Ekspor paket proyek</button><button id="ai">Impor paket</button><button id="bt">Ekspor subtitle (.srt)</button><input id="fi" type="file" accept=".json,application/json" hidden></div></details>
-<details><summary>Aset (perpustakaan; tempel kode dari chat)</summary>
-<div class="r"><input id="an" placeholder="nama aset, mis. batu_api" size="16"></div>
-<div class="r"><input id="ad" placeholder="deskripsi aset untuk Gemini, mis. batu api dari dua batu" style="flex:1;min-width:200px"><button id="ag" class="p">Buat dengan Gemini</button></div>
-<div id="nd"></div>
-<div class="r"><button id="av">Pratinjau kode</button><button id="asv">Setujui &amp; simpan</button></div>
+.info{padding:10px 12px}
+.hash{color:var(--ac);font-size:.82rem}.hash:empty{display:none}
+#vt{font-size:1.1rem;font-weight:600;margin:2px 0 4px;line-height:1.3;overflow-wrap:anywhere}
+.stat{display:block;width:100%;text-align:left;background:none;border:0;padding:0;color:var(--mu);font-size:.8rem;border-radius:0}.stat b{color:var(--fg);font-weight:500}
+.dsc{background:var(--cd);border-radius:12px;padding:12px;margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.86rem}
+.sch{background:var(--cd);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:.82rem}
+.chn{display:flex;align-items:center;gap:10px;margin:14px 0}
+.av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#ff4e45,#c4302b);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.cn{flex:1;min-width:0}.cn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cn span{color:var(--mu);font-size:.75rem}
+.pill{display:flex;align-items:center;gap:6px;border:0;border-radius:18px;padding:8px 14px;background:var(--fg);color:var(--bg);font-weight:500}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;align-items:center;gap:6px;border:0;border-radius:18px;background:var(--cd);padding:8px 14px;white-space:nowrap;font-weight:500}
+#scl{max-height:340px;overflow:auto;margin:0 -4px}
+.sc{display:flex;gap:10px;width:100%;text-align:left;border:0;background:none;border-radius:10px;padding:8px 6px;align-items:flex-start}
+.sc.on{background:var(--ln)}.sc .tm{flex:none;min-width:42px;font-variant-numeric:tabular-nums;color:var(--ac);font-weight:500}
+.sc .tx{flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:var(--bg);border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav button{flex:1;background:none;border:0;border-radius:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;font-size:.62rem;color:var(--mu)}
+#nav button.on{color:var(--fg);font-weight:600}#nav svg{width:24px;height:24px;fill:currentColor}
+#st{position:fixed;left:12px;right:12px;bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:50;background:#323232;color:#fff;border-radius:8px;padding:10px 14px;font-size:.85rem;display:none;max-width:560px;margin:auto}#st.on{display:block}
+#yl{font-size:.9rem;margin:6px 0}#yl a{color:var(--ac)}
+</style></head><body data-tab="watch">
+<header id="top"><svg width="28" height="20" viewBox="0 0 28 20"><rect width="28" height="20" rx="5" fill="#f00"/><path d="M11 5.5v9l7.5-4.5z" fill="#fff"/></svg><span id="tpg"></span></header>
+<main>
+<section id="v-watch" class="view on">
+<div class="plw"><div id="pl" class="pl show"><canvas id="cv" width="1280" height="720"></canvas><button id="big" aria-label="Putar"></button><b id="ts"></b>
+<div id="ctl"><input id="sk" type="range" min="0" max="1000" value="0" aria-label="Posisi video"><div class="cr"><button id="pp" aria-label="Putar / jeda"></button><button id="pv" aria-label="Adegan sebelumnya"></button><button id="nx" aria-label="Adegan berikutnya"></button><span id="tt">0:00 / 0:00</span><i></i><button id="cc" aria-label="Subtitle">CC</button><button id="sg" aria-label="Kecepatan"></button><button id="fsb" aria-label="Layar penuh"></button></div><div id="mn" hidden></div></div></div></div>
+<div class="info">
+<div id="hash" class="hash"></div>
+<h1 id="vt"></h1>
+<button id="vdb" class="stat"><span id="vs"></span> <b>…selengkapnya</b></button>
+<div id="vd" class="dsc" hidden></div>
+<div id="sch" class="sch" hidden></div>
+<div class="chn"><div class="av" id="avl">S</div><div class="cn"><b id="cn">Studio Film</b><span>Kanal Anda</span></div><button id="gm" class="pill" data-i="ai">Judul AI</button></div>
+<div class="chips"><button id="bp" class="chip" data-i="play">Putar</button><button id="bs" class="chip" data-i="mic">Suara AI</button><button id="br" class="chip" data-i="dl">Unduh MP4</button><button id="bt" class="chip" data-i="cc">Subtitle</button><button id="shb" class="chip" data-i="share">Bagikan</button><button id="yb2" class="chip" data-i="up">Upload</button></div>
+<div class="card"><h3>Adegan <span id="scn"></span></h3><div class="r"><label>Mulai dari adegan <input id="fs" type="number" value="1" min="1" style="width:64px"></label><button id="bf">Putar</button></div><div id="scl"></div></div>
+</div>
+</section>
 
-<textarea id="kd" rows="8" placeholder="Kode aset muncul di sini (bisa diedit)"></textarea>
-<div id="lib"></div></details>
+<section id="v-studio" class="view pad">
 <details open><summary>Cerita (Gemini menulis, bertahap)</summary>
 <label>Premis film</label><input id="sp" value="Bagaimana manusia purba menemukan api" style="width:100%">
 <div class="r"><label>Durasi minimal (menit)</label><input id="sd" type="number" value="10" min="10" max="30" style="width:80px"></div>
@@ -57,31 +92,75 @@ textarea{width:100%;margin-top:6px;font-family:ui-monospace,monospace;font-size:
 <div class="r"><button id="g1" class="p">1. Ide &amp; tokoh</button><button id="g2">2. Kerangka</button><button id="g3">3. Tulis naskah</button><button id="g4">4. Terapkan ke film</button></div>
 <label>Ide &amp; tokoh (boleh diedit sebelum lanjut)</label><textarea id="s1" rows="6"></textarea>
 <label>Kerangka babak (boleh diedit sebelum lanjut)</label><textarea id="s2" rows="8"></textarea>
-<div id="s3" style="font-size:.85rem;color:var(--mu)"></div></details>
-<details id="ytp"><summary>YouTube (upload langsung)</summary>
-<label>OAuth Client ID (Google Cloud, tipe Web application)</label><input id="yc" placeholder="123456-abc.apps.googleusercontent.com" style="width:100%">
-<label>Judul (kosong = judul film)</label><input id="yt" maxlength="100" style="width:100%">
-<label>Deskripsi</label><textarea id="yd" rows="4" placeholder="Deskripsi video"></textarea>
-<div class="r"><label><input type="checkbox" id="ych"> Tambah penanda bab (timestamp tiap adegan) ke deskripsi</label></div>
-<label>Tag (pisahkan koma)</label><input id="yg" style="width:100%" placeholder="film kartun, manusia purba">
+<div id="s3" class="hint"></div></details>
+<details><summary>Film (naskah JSON)</summary><textarea id="js" rows="12"></textarea>
+<div class="r"><button id="ba">Terapkan naskah</button><button id="bx">Ekspor paket proyek</button><button id="ai">Impor paket</button><input id="fi" type="file" accept=".json,application/json" hidden></div></details>
+<details><summary>Aset (perpustakaan; tempel kode dari chat)</summary>
+<div class="r"><input id="an" placeholder="nama aset, mis. batu_api" size="16"></div>
+<div class="r"><input id="ad" placeholder="deskripsi aset untuk Gemini, mis. batu api dari dua batu" style="flex:1;min-width:200px"><button id="ag" class="p">Buat dengan Gemini</button></div>
+<div id="nd"></div>
+<div class="r"><button id="av">Pratinjau kode</button><button id="asv">Setujui &amp; simpan</button></div>
+<textarea id="kd" rows="8" placeholder="Kode aset muncul di sini (bisa diedit)"></textarea>
+<div id="lib"></div></details>
+</section>
+
+<section id="v-up" class="view pad">
+<div class="card"><h3>Detail video</h3>
+<button id="gm2" class="p" data-i="ai">Buat judul, deskripsi &amp; tag dengan AI</button>
+<div class="hint">Hasilnya tampil di bawah video dan otomatis dipakai saat upload. Jika Anda mengubahnya sendiri, AI tidak menimpanya lagi kecuali Anda menekan tombol ini.</div>
+<label>Judul <span class="cnt" id="ct1"></span></label><input id="yt" maxlength="100" style="width:100%" placeholder="kosong = AI / judul film">
+<label>Deskripsi <span class="cnt" id="ct2"></span></label><textarea id="yd" rows="7" placeholder="Deskripsi video" style="font-family:inherit;font-size:.9rem"></textarea>
+<div class="r"><label><input type="checkbox" id="ych"> Tambah penanda bab (timestamp) ke deskripsi</label></div>
+<label>Tag (pisahkan koma) <span class="cnt" id="ct3"></span></label><input id="yg" style="width:100%" placeholder="film kartun, manusia purba">
 <div class="r"><label>Privasi <select id="yp"><option value="private">Pribadi</option><option value="unlisted">Tidak publik</option><option value="public">Publik</option></select></label>
 <label>Kategori <select id="yk"><option value="1">Film &amp; Animasi</option><option value="27">Pendidikan</option><option value="24">Hiburan</option><option value="22">Orang &amp; Blog</option></select></label>
 <label>Untuk anak <select id="yf"><option value="false">Tidak</option><option value="true">Ya</option></select></label></div>
 <div class="r"><label><input type="checkbox" id="ycp"> Unggah juga subtitle (.srt) sebagai teks video</label></div>
-<div class="r"><button id="yman">Ekspor lalu buka YouTube (tanpa setting)</button><button id="yout">Keluar akun YouTube</button></div>
+<div class="r"><button id="cpm">Salin judul, deskripsi &amp; tag</button></div></div>
+<div class="card"><h3>Thumbnail</h3>
+<button id="gth" class="p" data-i="ai">Buat thumbnail dengan AI</button>
+<div class="hint">AI memotret beberapa adegan film, memilih yang paling menarik untuk dijadikan thumbnail, lalu menambah teks pendek bila perlu. Dibuat otomatis saat upload jika belum ada.</div>
+<img id="thi" alt="Thumbnail" style="width:100%;border-radius:10px;margin-top:10px;display:none;aspect-ratio:16/9;object-fit:cover;background:#000">
+<div id="thn" class="hint"></div>
+<label>Teks di thumbnail (kosongkan = tanpa teks) <span class="cnt" id="ct4"></span></label><input id="tht" maxlength="40" style="width:100%">
+<div class="r"><label>Adegan <input id="ths" type="number" min="1" placeholder="AI" style="width:72px"></label><button id="thr">Terapkan teks / adegan</button><button id="thd">Unduh JPG</button></div>
+<div class="r"><label><input type="checkbox" id="thx"> Biarkan AI menambah teks</label></div>
+<div class="r"><label><input type="checkbox" id="thu"> Pasang thumbnail saat upload</label></div></div>
+<div class="card"><h3>Jadwal tayang</h3>
+<select id="ysm" style="width:100%"><option value="now">Langsung (sesuai privasi di atas)</option><option value="man">Jadwalkan (saya pilih jam)</option><option value="ai">Jadwalkan (Gemini memilih jam)</option></select>
+<div id="ysw"><label>Tanggal &amp; jam tayang (<span id="ytz"></span>)</label><input id="ysd" type="datetime-local" style="width:100%">
+<div class="r"><button id="ysa" data-i="ai">Minta saran jam dari Gemini</button></div></div>
+<div id="ysn" class="hint"></div></div>
+<div class="card"><h3>Akun &amp; upload</h3>
+<label>OAuth Client ID (Google Cloud, tipe Web application)</label><input id="yc" placeholder="123456-abc.apps.googleusercontent.com" style="width:100%">
+<div class="r"><button id="yb" class="p">Upload ke YouTube</button><button id="yman">Ekspor lalu buka YouTube (tanpa setting)</button><button id="yout">Keluar akun YouTube</button></div>
 <progress id="ypr" value="0" max="100" style="width:100%;display:none"></progress>
-<div id="yl" style="font-size:.9rem;margin:6px 0"></div>
-<div style="font-size:.78rem;color:var(--mu)">Butuh aplikasi dibuka lewat http(s) (bukan file://) dan origin-nya terdaftar di Client ID. Proyek Google yang belum diaudit YouTube hanya bisa mengunggah video sebagai Pribadi.</div></details>
-<details><summary>Pengaturan</summary>
+<div id="yl"></div>
+<div class="hint">Butuh aplikasi dibuka lewat http(s) (bukan file://) dan origin-nya terdaftar di Client ID. Proyek Google yang belum diaudit YouTube hanya bisa mengunggah video sebagai Pribadi, dan itu juga berlaku untuk jadwal tayang.</div></div>
+</section>
 
-<label>Gemini API key, maks. 50 (pisahkan koma/baris)</label><textarea id="ks" rows="2"></textarea>
+<section id="v-set" class="view pad">
+<div class="card"><h3>Gemini</h3><label>Gemini API key, maks. 50 (pisahkan koma/baris)</label><textarea id="ks" rows="2"></textarea>
 <label>Model suara Gemini</label><input id="vm" style="width:100%"><label>Suara narator</label><select id="vn"></select>
-<div class="r"><button id="sv">Simpan pengaturan</button><button id="kr">Reset status key</button></div></details>
+<div class="r"><button id="sv" class="p">Simpan pengaturan</button><button id="kr">Reset status key</button></div></div>
+<div class="card"><h3>Pemutar</h3><div class="r"><label>Kecepatan <select id="spd"></select></label><button id="wl">Layar: Off</button><label>Subtitle <select id="sub"><option value="1">Aktif</option><option value="0">Mati</option></select></label></div></div>
+<div class="card"><h3>Kanal</h3><label>Nama kanal (tampil di bawah video)</label><input id="chi" style="width:100%" placeholder="Studio Film"></div>
+</section>
+</main>
+<div id="st"></div>
+<nav id="nav">
+<button id="n-watch" class="on"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-2 14.5v-9l7 4.5z"/></svg>Tonton</button>
+<button id="n-studio"><svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V4z"/></svg>Studio</button>
+<button id="n-up"><svg viewBox="0 0 24 24"><path d="M5 4h14v2H5zm7 4l5 5h-3.5v6h-3v-6H7z"/></svg>Upload</button>
+<button id="n-set"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.7 7.7 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>Setelan</button>
+</nav>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-const $=i=>document.getElementById(i),cv=$('cv'),g=cv.getContext('2d'),st=m=>$('st').textContent=m,cl=x=>Math.min(1,Math.max(0,x)),ea=x=>x*x*(3-2*x);
+var UIR=0,NOUI=0,CAMO=null,DEFD0='Dibuat dengan Studio Film.';
+const $=i=>document.getElementById(i),cv=$('cv'),g=cv.getContext('2d'),st=m=>stShow(m),cl=x=>Math.min(1,Math.max(0,x)),ea=x=>x*x*(3-2*x);
+function stShow(m){const e=$('st');e.textContent=m||'';e.classList.toggle('on',!!m);clearTimeout(e.h);e.h=setTimeout(()=>e.classList.remove('on'),/%|Membuat|Menulis|Mengunggah|Ekspor|Gemini/.test(m||'')?15000:7000)}
 /* ---------- pengaturan ---------- */
 let CFG={spd:1,sub:1,wl:'off',sm:'gemini-3.6-flash',sl:'gemini-3.5-flash-lite',ks:[],m:'gemini-3.8-flash-lite-tts',vn:'Charon'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('fs_cfg')||'{}'))}catch(e){}
@@ -91,7 +170,9 @@ $('sv').onclick=()=>{const sp=v=>v.split(/[,\s;]+/).filter(Boolean).slice(0,50);
 
 /* ---------- buku gaya ---------- */
 const S={garis:0x111111,tanah:{siang:0x8a9a52,malam:0x44564f,gua:0x5a4838},warna:['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6','#e67e22'],kulit:0xf2d2a9};
-const ENV={siang:{bg:0x9fd4f5,hemi:.95,sun:2.2,sc:0xfff0d0},malam:{bg:0x101a3c,hemi:.8,sun:1.1,sc:0x8fa6f0},gua:{bg:0x1a130e,hemi:.9,sun:.7,sc:0xcc9966}};
+/* sun = kuat cahaya arah (matahari/bulan); sh = apakah cahaya arah membuat bayangan; hs/hg = warna cahaya langit/tanah.
+   Arah cahaya selalu = posisi bendanya (SUN_SRC, MOON, CAVE_SRC); di gua cahaya utama adalah api. */
+const ENV={siang:{bg:0x9fd4f5,hemi:.95,sun:2.2,sc:0xfff0d0,sh:true,hs:0xdcefff,hg:0x667744},malam:{bg:0x101a3c,hemi:.85,sun:2.4,sc:0x9db4ff,sh:true,hs:0x6a7fc0,hg:0x26332f},gua:{bg:0x1a130e,hemi:.5,sun:.35,sc:0xcc9966,sh:false,hs:0x7a5a42,hg:0x2a1c12}};
 const tm=c=>new THREE.MeshToonMaterial({color:c}),OL=new THREE.MeshBasicMaterial({color:S.garis,side:THREE.BackSide});
 
 /* ---------- renderer & dunia ---------- */
@@ -100,13 +181,17 @@ const sc=new THREE.Scene();sc.background=new THREE.Color(0x9fd4f5);sc.fog=new TH
 const cam=new THREE.PerspectiveCamera(40,RW/RH,.1,100);
 function setRes(w,h){RW=w;RH=h;ren.setSize(w,h);cv.width=w;cv.height=h;cam.aspect=w/h;cam.updateProjectionMatrix()}
 const hemi=new THREE.HemisphereLight(0xdcefff,0x667744,.9);sc.add(hemi);
-const dl=new THREE.DirectionalLight(0xfff0d0,2);dl.position.set(8,12,8);dl.castShadow=true;dl.shadow.mapSize.set(1024,1024);Object.assign(dl.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sc.add(dl);
+const dl=new THREE.DirectionalLight(0xfff0d0,2);dl.position.set(8,12,8);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);Object.assign(dl.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:90});dl.shadow.bias=-.0004;dl.shadow.normalBias=.03;sc.add(dl);
+const FLT=new THREE.DirectionalLight(0xdfe8ff,0);sc.add(FLT);const SPL=new THREE.PointLight(0xffb347,0,6);sc.add(SPL);const WHT=new THREE.Color(0xffffff);
+const SUN_SRC=new THREE.Vector3(12,15,7),CAVE_SRC=new THREE.Vector3(0,6,14);
 const gm=new THREE.Mesh(new THREE.CircleGeometry(40,48).rotateX(-Math.PI/2),new THREE.MeshToonMaterial({color:S.tanah.siang}));gm.receiveShadow=true;sc.add(gm);
 const DYN=new THREE.Group();sc.add(DYN);
 const glowT=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),q=x.createRadialGradient(32,32,0,32,32,32);q.addColorStop(0,'rgba(255,255,255,1)');q.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=q;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
 const pgeo=(n,fn)=>{const g=new THREE.BufferGeometry(),p=new Float32Array(n*3);for(let i=0;i<n;i++)fn(p,i);g.setAttribute('position',new THREE.BufferAttribute(p,3));return g};
 const STAR=new THREE.Points(pgeo(220,(p,i)=>{const a=Math.random()*6.283,e=.15+Math.random()*1.2;p[i*3]=Math.cos(a)*Math.cos(e)*70;p[i*3+1]=Math.sin(e)*70;p[i*3+2]=Math.sin(a)*Math.cos(e)*70-10}),new THREE.PointsMaterial({color:0xffffff,size:2,fog:false,sizeAttenuation:false}));sc.add(STAR);
-const MOON=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMaterial({color:0xf4f1de,fog:false}));MOON.position.set(-30,26,-60);sc.add(MOON);
+const MOON=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMaterial({color:0xf4f1de,fog:false}));MOON.position.set(-26,17,-60);sc.add(MOON);
+const MOONG=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT,color:0xaecbff,transparent:true,opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));MOONG.position.copy(MOON.position);MOONG.scale.set(26,26,1);sc.add(MOONG);
+const SUNM=new THREE.Mesh(new THREE.CircleGeometry(5,24),new THREE.MeshBasicMaterial({color:0xfff2c0,fog:false}));SUNM.position.copy(SUN_SRC).setLength(85);SUNM.lookAt(0,0,0);sc.add(SUNM);
 const SN=new THREE.Points(pgeo(500,(p,i)=>{p[i*3]=(Math.random()-.5)*28;p[i*3+1]=Math.random()*9;p[i*3+2]=-10+Math.random()*18}),new THREE.PointsMaterial({color:0xffffff,size:.1,transparent:true,opacity:.9}));SN.visible=false;SN.frustumCulled=false;sc.add(SN);
 function snowUpd(t,dt){const p=SN.geometry.attributes.position.array;for(let i=0;i<500;i++){p[i*3+1]-=dt*(1.2+(i%5)*.3);p[i*3]+=dt*(.8+WN*4+Math.sin(t+i)*.3);if(p[i*3+1]<0)p[i*3+1]=9;if(p[i*3]>14)p[i*3]=-14}SN.geometry.attributes.position.needsUpdate=true}
 const SPK=new THREE.Points(pgeo(40,()=>{}),new THREE.PointsMaterial({color:0xffc060,size:.14,map:glowT,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));SPK.visible=false;SPK.frustumCulled=false;sc.add(SPK);
@@ -149,7 +234,7 @@ loadLib();
 
 /* ---------- aset buatan Claude ---------- */
 let PV=null;
-function prev(name){try{const b=name&&LIB[name]?LIB[name]:compile($('kd').value);const r=b();if(!r||!r.obj)throw new Error('harus mengembalikan {obj}');PV=r;setupEnv('siang');SN.visible=BOLT.visible=SPK.visible=false;clearDyn();DYN.add(r.obj);st('Pratinjau tampil. Setujui jika sudah bagus, atau tulis revisi.')}
+function prev(name){try{const b=name&&LIB[name]?LIB[name]:compile($('kd').value);const r=b();if(!r||!r.obj)throw new Error('harus mengembalikan {obj}');PV=r;setupEnv('siang');SN.visible=BOLT.visible=SPK.visible=false;clearDyn();DYN.add(r.obj);showTab('watch');st('Pratinjau tampil di pemutar. Kembali ke tab Studio untuk menyetujui & menyimpan, atau tulis revisi.')}
  catch(e){PV=null;st('Kode error: '+e.message+' (perbaiki kode atau minta perbaikan di chat)')}}
 $('av').onclick=()=>prev();
 $('asv').onclick=async()=>{const n=$('an').value.trim().replace(/\W+/g,'_'),c=$('kd').value;if(!n||!PV){st('Pratinjau dulu sampai tampil.');return}await dbx('readwrite',s=>s.put({name:n,code:c,t:Date.now()}));LIB[n]=compile(c);CODE[n]=c;renderLib();st('Aset "'+n+'" tersimpan di perpustakaan.')};
@@ -290,11 +375,12 @@ function windFx(t){const on=WN>.05,gua=cur>=0&&FILM.scenes[cur]&&FILM.scenes[cur
 const DEMO={"judul":"Oga dan Percikan Misterius","scenes":[{"env":"malam","narasi":"Dahulu kala, di zaman purba yang sangat membekukan, malam terasa seperti musuh yang paling menakutkan. Angin dingin berembus keras menerjang seluruh lembah, menyelimuti alam dalam keheningan yang mencengkam.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0,"anim":"takut","go":[-1,0],"hadap":[-4,1]},{"id":"buri","warna":"#4E342E","x":1,"z":0,"anim":"diam","go":[1,0],"hadap":[-1,0]},{"id":"kiki","warna":"#7CB342","x":-2,"z":-1,"anim":"gosok","go":[-2,-1],"hadap":[-1,0]},{"id":"mimi","warna":"#0288D1","x":2,"z":1,"anim":"takut","go":[2,1],"hadap":[0,0]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"pohon","x":-4,"z":1,"s":1,"r":0,"mulai":0},{"a":"batu","x":3,"z":-1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":6}]},{"env":"malam","narasi":"Tiba-tiba, gemuruh petir membelah langit malam yang pekat! Sebuah kilatan dahsyat menyambar pohon kering di kejauhan, memercikkan cahaya terang yang seketika mengejutkan para manusia goa yang sedang meringkuk ketakutan.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0,"anim":"takut","go":[-1,0],"hadap":[-4,1]},{"id":"buri","warna":"#4E342E","x":1,"z":0,"anim":"tunjuk","go":[1,0],"hadap":[-4,1]},{"id":"kiki","warna":"#7CB342","x":-2,"z":-1,"anim":"takut","go":[-2,-1],"hadap":[-4,1]},{"id":"mimi","warna":"#0288D1","x":2,"z":1,"anim":"tunjuk","go":[2,1],"hadap":[-4,1]}],"cam":{"tipe":"lebar","fokus":[-3,1]},"props":[{"a":"pohon","x":-4,"z":1,"s":1,"r":0,"mulai":0},{"a":"batu","x":3,"z":-1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"petir","at":0,"dur":3}]},{"env":"malam","narasi":"Cahaya itu sirna sesaat kemudian, meninggalkan kegelapan yang kian dingin dan mencengkam. Tanpa pelindung dan tanpa kehangatan, malam bagi Oga dan sukunya adalah pertarungan hidup dan mati untuk sekadar bertahan hingga fajar.","actors":[{"id":"oga","warna":"#FF6F00","x":0,"z":0,"anim":"gosok","go":[0,0],"hadap":[1,0]},{"id":"buri","warna":"#4E342E","x":2,"z":0,"anim":"diam","go":[2,0],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-1,"z":-1,"anim":"gosok","go":[-1,-1],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":1,"z":1,"anim":"takut","go":[1,1],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0,0]},"props":[{"a":"batu","x":-2,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Di dinding batu yang dingin, keempatnya meringkuk saling merapatkan diri. Buri, sang pemimpin suku, berdiri kokoh di ambang gua. Matanya tajam melempar pandang ke kegelapan, memastikan tak ada bahaya yang mendekat.","actors":[{"id":"buri","warna":"#4E342E","x":-5,"z":1,"anim":"gosok","go":[-4,1],"hadap":[-8,1]},{"id":"oga","warna":"#FF6F00","x":1,"z":0,"anim":"duduk","go":[1,0],"hadap":[-5,1]},{"id":"mimi","warna":"#0288D1","x":2,"z":-0.5,"anim":"duduk","go":[2,-0.5],"hadap":[1,0]},{"id":"kiki","warna":"#7CB342","x":1.5,"z":1,"anim":"duduk","go":[1.5,1],"hadap":[2,-0.5]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"batu","x":-4,"z":2,"s":1.2,"r":0,"mulai":0},{"a":"batu","x":3,"z":-1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Sementara itu, Kiki berusaha memakan sepotong akar yang membeku keras. Geligi badannya bergetar hebat saat menggigitnya, melahirkan gerakan menggigil kocak yang tak mampu mengusir rasa lapar maupun hawa membekukan di dalam gua.","actors":[{"id":"kiki","warna":"#7CB342","x":1.5,"z":1,"anim":"gosok","go":[1.5,1],"hadap":[1.5,2]},{"id":"oga","warna":"#FF6F00","x":1,"z":0,"anim":"duduk","go":[1,0],"hadap":[1.5,1]},{"id":"mimi","warna":"#0288D1","x":2,"z":-0.5,"anim":"duduk","go":[2,-0.5],"hadap":[1.5,1]},{"id":"buri","warna":"#4E342E","x":-5,"z":1,"anim":"diam","go":[-4,1],"hadap":[-8,1]}],"cam":{"tipe":"dekat","fokus":[1.5,1]},"props":[{"a":"batu","x":3,"z":-1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Namun bagi Oga, rasa takut tak sepenuhnya menutup rasa ingin tahunya. Dari sudut gua yang gelap, matanya terus menatap ke luar, memikirkan bayangan kilatan misterius yang sempat menyapa malam purba mereka.","actors":[{"id":"oga","warna":"#FF6F00","x":1,"z":0,"anim":"tunjuk","go":[1,0],"hadap":[-5,1]},{"id":"buri","warna":"#4E342E","x":-5,"z":1,"anim":"diam","go":[-4,1],"hadap":[-8,1]},{"id":"kiki","warna":"#7CB342","x":1.5,"z":1,"anim":"duduk","go":[1.5,1],"hadap":[1,0]},{"id":"mimi","warna":"#0288D1","x":2,"z":-0.5,"anim":"duduk","go":[2,-0.5],"hadap":[1,0]}],"cam":{"tipe":"dekat","fokus":[1,0]},"props":[{"a":"batu","x":-4,"z":2,"s":1.2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Badai salju di luar menderu semakin ganas. Hawa membeku merayap perlahan menembus sudut gua, mengubah sisa pasokan makanan suku yang tersisa menjadi keras seperti batu.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":0,"anim":"gosok","go":[-2,0],"hadap":[0,1]},{"id":"buri","warna":"#4E342E","x":2,"z":1,"anim":"duduk","go":[2,1],"hadap":[-1,1]},{"id":"kiki","warna":"#7CB342","x":-1,"z":1,"anim":"pukul","go":[-1,1],"hadap":[-1,1]},{"id":"mimi","warna":"#0288D1","x":1,"z":0,"anim":"takut","go":[1,0],"hadap":[-1,1]}],"cam":{"tipe":"lebar","fokus":[0,1]},"props":[{"a":"batu","x":-1,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Buri menatap kegelapan di luar dengan raut cemas. Tanpa makanan yang bisa dikunyah dan tanpa rasa hangat, keselamatan seluruh kelompoknya kini benar-benar berada di ujung tanduk.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":0,"anim":"duduk","go":[-2,0],"hadap":[3,2]},{"id":"buri","warna":"#4E342E","x":3,"z":2,"anim":"tunjuk","go":[3,2],"hadap":[5,2]},{"id":"kiki","warna":"#7CB342","x":-1,"z":1,"anim":"takut","go":[-1,1],"hadap":[3,2]},{"id":"mimi","warna":"#0288D1","x":1,"z":0,"anim":"gosok","go":[1,0],"hadap":[3,2]}],"cam":{"tipe":"dekat","fokus":[3,2]},"props":[{"a":"batu","x":-1,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Mimi dan Kiki meringkuk pasrah, gemetar menahan dingin yang meremukkan tulang. Oga tahu betul, jika mereka hanya berdiam diri, malam yang membeku ini akan memangsa mereka tanpa ampun.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":0,"anim":"gosok","go":[-2,1],"delay":1,"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":3,"z":2,"anim":"duduk","go":[3,2],"hadap":[-2,0]},{"id":"kiki","warna":"#7CB342","x":-1,"z":1,"anim":"gosok","go":[-1,1],"hadap":[-2,0]},{"id":"mimi","warna":"#0288D1","x":1,"z":0,"anim":"gosok","go":[1,0],"hadap":[-2,0]}],"cam":{"tipe":"lebar","fokus":[-2,0]},"props":[{"a":"batu","x":-1,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Kiki tak mau menyerah pada rasa dingin. Dengan mata berbinar konyol, ia melompat dan memeluk sebuah batu besar di sudut gua. Dalam benak Kiki, batu raksasa itu pasti menyimpan sisa kehangatan siang hari.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":0,"anim":"duduk","go":[-2,0],"hadap":[2,1]},{"id":"mimi","warna":"#0288D1","x":-3,"z":1,"anim":"duduk","go":[-3,1],"hadap":[2,1]},{"id":"kiki","warna":"#7CB342","x":-0.5,"z":-1,"anim":"gosok","go":[1.2,0.8],"delay":0.5,"hadap":[2,1]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"batu","x":2,"z":1,"s":1.5,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4},{"n":"langkah","at":0.5,"dur":2}]},{"env":"gua","narasi":"Sayang sekali, khayalan manisnya buyar seketika! Tetesan es yang amat membeku mendadak jatuh tepat menimpa hidungnya. Kiki menjerit kocak, melompat mundur sambil menggigil hebat dan mengusap mukanya yang kebas.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":0,"anim":"diam","go":[-2,0],"hadap":[1.2,0.8]},{"id":"mimi","warna":"#0288D1","x":-3,"z":1,"anim":"diam","go":[-3,1],"hadap":[1.2,0.8]},{"id":"kiki","warna":"#7CB342","x":1.2,"z":0.8,"anim":"takut","go":[-0.2,-0.5],"delay":0.3,"hadap":[2,1]}],"cam":{"tipe":"dekat","fokus":[1.2,0.8]},"props":[{"a":"batu","x":2,"z":1,"s":1.5,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Polah dramatis Kiki berhasil memancing tawa kecil Oga dan Mimi di tengah kegelisahan. Namun senyum itu sirna secepat embusan angin. Usaha pertama mereka menghangatkan diri berakhir gagal total.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":0,"anim":"sorak","go":[-2,0],"hadap":[-0.2,-0.5]},{"id":"mimi","warna":"#0288D1","x":-3,"z":1,"anim":"sorak","go":[-3,1],"hadap":[-0.2,-0.5]},{"id":"kiki","warna":"#7CB342","x":-0.2,"z":-0.5,"anim":"gosok","go":[-0.2,-0.5],"hadap":[-2,0]}],"cam":{"tipe":"lebar","fokus":[-1,0]},"props":[{"a":"batu","x":2,"z":1,"s":1.5,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Tidak menyerah, Oga melihat Buri yang terus menggigil di mulut gua. Sebuah ide muncul di benak kecilnya. Dengan penuh semangat, Oga mengambil dua lembar bulu tebal dan perlahan mendekati sang pemimpin suku.","actors":[{"id":"oga","warna":"#FF6F00","x":-2,"z":1,"anim":"diam","go":[0,1],"delay":0.5,"hadap":[1,1]},{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"duduk","go":[1,1],"hadap":[-1,1]},{"id":"kiki","warna":"#7CB342","x":-3,"z":-1,"anim":"duduk","go":[-3,-1],"hadap":[0,0]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Oga mulai menggosokkan bulu-bulu itu ke punggung Buri secepat mungkin, berharap percikan hangat muncul. Namun, bukannya hangat, tubuh Buri yang kekar justru mulai bergetar hebat karena rasa geli yang tak tertahankan.","actors":[{"id":"oga","warna":"#FF6F00","x":0.2,"z":1,"anim":"gosok","go":[0.2,1],"hadap":[1,1]},{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"takut","go":[1,1],"hadap":[-1,1]},{"id":"kiki","warna":"#7CB342","x":-3,"z":-1,"anim":"duduk","go":[-3,-1],"hadap":[1,1]}],"cam":{"tipe":"dekat","fokus":[1,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Hawa geli menggelitik hidung Buri hingga ia melepaskan bersin dahsyat! Dorongan bersin itu memental Oga hingga membentur dinding gua. Kelompok purba tersebut kini kembali terdiam, terhempas dingin tanpa kehangatan yang dicari.","actors":[{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"pukul","go":[1,1],"hadap":[-1,1]},{"id":"oga","warna":"#FF6F00","x":0.2,"z":1,"anim":"takut","go":[-4,2],"delay":0.2,"hadap":[1,1]},{"id":"kiki","warna":"#7CB342","x":-3,"z":-1,"anim":"takut","go":[-3,-1],"hadap":[1,1]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Tak mau menyerah, Mimi mendadak punya ide baru. Dengan sangat teliti, ia mengumpulkan tumpukan dedaunan kering di dekat mulut gua. Ia menunjuk daun-daun itu penuh harapan sebagai selimut penghangat bersama.","actors":[{"id":"mimi","warna":"#0288D1","x":-1,"z":1,"anim":"tunjuk","go":[0,1],"hadap":[1,1]},{"id":"oga","warna":"#FF6F00","x":2,"z":1,"anim":"diam","go":[2,1],"hadap":[0,1]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"gosok","go":[2,2],"hadap":[0,1]}],"cam":{"tipe":"dekat","fokus":[0,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"semak","x":-1,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"langkah","at":0,"dur":2}]},{"env":"gua","narasi":"Namun, alam purba kembali menunjukkan kebuasannya. Tiupan angin badai yang sangat kencang mendadak menerobos masuk. Seketika itu juga, pusaran angin dahsyat menyapu dan menerbangkan seluruh tumpukan dedaunan kering itu ke udara!","actors":[{"id":"mimi","warna":"#0288D1","x":0,"z":1,"anim":"takut","go":[-1,1],"hadap":[-2,0]},{"id":"oga","warna":"#FF6F00","x":2,"z":1,"anim":"takut","go":[1,1],"hadap":[-2,0]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"takut","go":[2,2],"hadap":[-2,0]}],"cam":{"tipe":"lebar","fokus":[0,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"semak","x":4,"z":-2,"s":1,"r":0,"mulai":1}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Dedaunan itu melayang jauh keluar dan sirna tanpa sisa. Usaha ketiga mereka lagi-lagi berakhir gagal total. Kelompok itu kini pasrah terduduk lemas di lantai goa, kaku terpaku oleh hawa dingin membekukan.","actors":[{"id":"mimi","warna":"#0288D1","x":-1,"z":1,"anim":"duduk","go":[-1,1],"hadap":[1,1]},{"id":"oga","warna":"#FF6F00","x":1,"z":1,"anim":"duduk","go":[1,1],"hadap":[-1,1]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"duduk","go":[2,2],"hadap":[1,1]}],"cam":{"tipe":"dekat","fokus":[1,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":3}]},{"env":"gua","narasi":"Malam kian larut dan badai es di luar merayap masuk tanpa ampun. Suhu udara anjlok drastis, membuat napas mereka mengembun tebal di udara yang kian menghimpit.","actors":[{"id":"oga","warna":"#FF6F00","x":-3,"z":2,"anim":"duduk","go":[-3,2],"hadap":[0,1]},{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"gosok","go":[1,1],"hadap":[1,2]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"takut","go":[2,2],"hadap":[1,1]},{"id":"mimi","warna":"#0288D1","x":-1,"z":2,"anim":"gosok","go":[-1,2],"hadap":[-3,2]}],"cam":{"tipe":"lebar","fokus":[0,1]},"props":[{"a":"batu","x":-2,"z":1,"s":1,"r":0,"mulai":0},{"a":"batu","x":2,"z":2,"s":1.2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Satu per satu anggota suku mulai melemah dan tak berdaya. Tubuh Buri yang perkasa kini gemetar hebat, sementara Kiki dan Mimi hanya bisa meringkuk menahan gigilan yang menusuk tulang.","actors":[{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"takut","go":[1,1],"hadap":[2,2]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"duduk","go":[2,2],"hadap":[1,1]},{"id":"mimi","warna":"#0288D1","x":0.5,"z":2,"anim":"gosok","go":[0.5,2],"hadap":[1,1]},{"id":"oga","warna":"#FF6F00","x":-3,"z":2,"anim":"duduk","go":[-3,2],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[1,1]},"props":[{"a":"batu","x":2,"z":2,"s":1.2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Oga terduduk sendirian di sudut goa yang paling gelap. Hatinya teriris melihat keluarganya menderita, merasa bersalah karena segala usahanya selalu berujung pada kegagalan.","actors":[{"id":"oga","warna":"#FF6F00","x":-3,"z":2,"anim":"duduk","go":[-3.2,2.2],"delay":0.5,"hadap":[-3.5,2.5]},{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"duduk","go":[1,1],"hadap":[2,2]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"duduk","go":[2,2],"hadap":[1,1]},{"id":"mimi","warna":"#0288D1","x":0.5,"z":2,"anim":"duduk","go":[0.5,2],"hadap":[1,1]}],"cam":{"tipe":"dekat","fokus":[-3,2]},"props":[{"a":"batu","x":-3.5,"z":2.5,"s":1.5,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":4}]},{"env":"gua","narasi":"Keheningan malam dan rasa dingin yang membeku seolah siap menelan mereka bulat-bulat. Harapan mereka perlahan sirna, menyisakan keputusasaan di tengah kegelapan rimba purba.","actors":[{"id":"oga","warna":"#FF6F00","x":-3.2,"z":2.2,"anim":"duduk","go":[-3.2,2.2],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":1,"z":1,"anim":"duduk","go":[1,1],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":2,"z":2,"anim":"takut","go":[2,2],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":0.5,"z":2,"anim":"gosok","go":[0.5,2],"hadap":[0,0]}],"cam":{"tipe":"atas","fokus":[0,1.5]},"props":[{"a":"batu","x":-2,"z":1,"s":1,"r":0,"mulai":0},{"a":"batu","x":2,"z":2,"s":1.2,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":6}]},{"env":"malam","narasi":"Tiba-tiba, petir menggelegar dahsyat menyambar batu hitam tepat di depan gua. Letupan percikan merah terang membelah kegelapan malam, menyilaukan pandangan Oga dan Mimi yang sedang berpelukan ketakutan.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":1,"anim":"takut","go":[-1,1],"hadap":[2,2]},{"id":"mimi","warna":"#0288D1","x":-2,"z":0.5,"anim":"takut","go":[-2,0.5],"hadap":[2,2]}],"cam":{"tipe":"lebar","fokus":[0,1]},"props":[{"a":"gua","x":0,"z":0,"s":1.5,"r":0,"mulai":0},{"a":"batu","x":2,"z":2,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"petir","at":0.5,"dur":2}]},{"env":"malam","narasi":"Percikan membara itu melayang dan menyambar tumpukan dedaunan kering. Seketika, lidah cahaya kecil menyala cerah, memancarkan kehangatan singkat yang menembus kebekuan goa sebelum akhirnya perlahan padam kembali.","actors":[{"id":"oga","warna":"#FF6F00","x":-0.5,"z":1.2,"anim":"tunjuk","go":[-0.5,1.2],"hadap":[2,2]},{"id":"mimi","warna":"#0288D1","x":-1.5,"z":0.5,"anim":"diam","go":[-1.5,0.5],"hadap":[2,2]}],"cam":{"tipe":"dekat","fokus":[2,2]},"props":[{"a":"batu","x":2,"z":2,"s":1,"r":0,"mulai":0},{"a":"api","x":2.2,"z":2.1,"s":0.8,"r":0,"mulai":0.5}],"sfx":[{"n":"api","at":0.5,"dur":3}]},{"env":"malam","narasi":"Oga terperanjat hebat menyaksikan bayangan gaib tercipta di dinding batu. Keajaiban kilat itu memantik rasa penasaran yang amat mendalam, perlahan mengusir keputusasaan yang sempat merenggut harapan mereka.","actors":[{"id":"oga","warna":"#FF6F00","x":-0.5,"z":1.2,"anim":"diam","go":[1,1.8],"delay":0.5,"hadap":[2,2]},{"id":"mimi","warna":"#0288D1","x":-1.5,"z":0.5,"anim":"diam","go":[-1,0.8],"delay":1,"hadap":[2,2]}],"cam":{"tipe":"ikut","fokus":[0,0],"id":"oga"},"props":[{"a":"batu","x":2,"z":2,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":3},{"n":"langkah","at":0.5,"dur":2}]},{"env":"malam","narasi":"Bayangan besar di dinding gua membuat Oga gemetar hebat. Jantungnya berdegup kencang, membayangkan bahaya di balik kegelapan. Namun, saat melihat sukunya yang menggigil, tekad kuat membakar rasa takutnya.","actors":[{"id":"oga","warna":"#FF6F00","x":1,"z":1,"anim":"takut","go":[1,1],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[1,1]},"props":[{"a":"gua","x":0,"z":0,"s":1.5,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":3}]},{"env":"malam","narasi":"Demi keselamatan orang-orang yang dicintainya, Oga menepis segala ragu. Langkah kaki kecilnya bergerak perlahan mendekati area bekas penyambaran kilat. Hawa malam membeku tak lagi mampu menghentikan keberanian Oga.","actors":[{"id":"oga","warna":"#FF6F00","x":2,"z":1,"anim":"lari","go":[-2,0],"hadap":[-3,0]}],"cam":{"tipe":"lebar","fokus":[-2,0]},"props":[{"a":"batu","x":-3,"z":0,"s":1,"r":0,"mulai":0},{"a":"semak","x":-4,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"langkah","at":0,"dur":3}]},{"env":"malam","narasi":"Di bawah sisa abu kering, dua batu hitam purba terasa masih memancarkan kehangatan. Tangan Oga yang gemetar merengkuh kedua batu itu rapat-rapat. Sebuah keajaiban kecil kini ada di dalam genggamannya.","actors":[{"id":"oga","warna":"#FF6F00","x":-2.5,"z":0,"anim":"gosok","go":[-2.5,0],"hadap":[-3,0]}],"cam":{"tipe":"dekat","fokus":[-3,0]},"props":[{"a":"batu","x":-3,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":3}]},{"env":"gua","narasi":"Oga berlutut di atas tanah gua yang dingin. Dengan tangan masih gemetar, ia mencoba memukulkan kedua batu hitam itu satu sama lain. Letupan percikan merah kecil terpancar singkat, membuat matanya terbelalak penasaran.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":1,"anim":"pukul","hadap":[0,1]},{"id":"mimi","warna":"#0288D1","x":2,"z":2,"anim":"duduk","hadap":[-1,1]}],"cam":{"tipe":"dekat","fokus":[-1,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"batu","x":-1,"z":1,"s":0.5,"r":0,"mulai":0}],"sfx":[{"n":"langkah","at":0,"dur":1}]},{"env":"gua","narasi":"Dari sudut lain, Mimi mengamati gerakan Oga dengan teliti. Ia mendekat perlahan, memberi isyarat agar Oga mengarahkan letupan bunga api itu ke tumpukan dedaunan kering di dekat mereka. Rasa penasaran mengalahkan ketakutan.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":1,"anim":"gosok","hadap":[-0.5,1]},{"id":"mimi","warna":"#0288D1","x":2,"z":2,"anim":"tunjuk","go":[0.3,1],"hadap":[-1,1]}],"cam":{"tipe":"ikut","fokus":[0,0],"id":"mimi"},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"batu","x":-1,"z":1,"s":0.5,"r":0,"mulai":0},{"a":"semak","x":-0.5,"z":1,"s":0.5,"r":0,"mulai":0}],"sfx":[{"n":"langkah","at":0.5,"dur":1.5}]},{"env":"gua","narasi":"Berkali-kali percikan meletup, namun dedaunan itu tak juga menyala. Oga tak menyerah. Ia membungkuk lebih dekat, menahan napas, lalu menghantamkan kedua batu itu lebih keras dengan sisa-sisa tenaga terakhirnya.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":1,"anim":"pukul","hadap":[-0.5,1]},{"id":"mimi","warna":"#0288D1","x":0.3,"z":1,"anim":"duduk","hadap":[-0.5,1]}],"cam":{"tipe":"dekat","fokus":[-0.7,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"semak","x":-0.5,"z":1,"s":0.5,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":0,"dur":2}]},{"env":"gua","narasi":"Percikan api yang lebih besar akhirnya terlempar tepat ke tengah dedaunan. Asap tipis mulai membumbung, disusul titik bara merah yang menjalar perlahan. Mata Oga dan Mimi berbinar melihat keajaiban kecil itu membara.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":1,"anim":"sorak","hadap":[-0.5,1]},{"id":"mimi","warna":"#0288D1","x":0.3,"z":1,"anim":"sorak","hadap":[-0.5,1]}],"cam":{"tipe":"lebar","fokus":[0,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"semak","x":-0.5,"z":1,"s":0.5,"r":0,"mulai":0},{"a":"api","x":-0.5,"z":1,"s":0.4,"r":0,"mulai":1.5}],"sfx":[{"n":"api","at":1.5,"dur":2}]},{"env":"gua","narasi":"Oga meletakkan ranting-ranting kering di atas bara yang mulai menyala dengan perlahan. Napasnya terengah-engah, dadanya berdebar kencang, dan tangannya bergetar hebat saat mencoba menjaga keajaiban kecil ini agar tidak terpadamkan.","actors":[{"id":"oga","warna":"#FF6F00","x":0,"z":0,"anim":"gosok","go":[0,0],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":1,"z":0.5,"anim":"duduk","go":[1,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":-3,"z":2,"anim":"diam","go":[-3,2],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-4,"z":1,"anim":"duduk","go":[-4,1],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"batu","x":-1,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":3}]},{"env":"gua","narasi":"Dengan hati-hati, Oga membungkukkan tubuhnya dan meniup bara kecil itu lembut sekali. Mimi menahan napas sambil mengamati dengan teliti, sementara Buri dan Kiki mengintip ragu dari sudut gua yang gelap membeku.","actors":[{"id":"oga","warna":"#FF6F00","x":0,"z":0,"anim":"duduk","go":[0,0],"hadap":[0.5,0]},{"id":"mimi","warna":"#0288D1","x":1,"z":0.5,"anim":"tunjuk","go":[1,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":-3,"z":2,"anim":"takut","go":[-3,2],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-4,"z":1,"anim":"takut","go":[-4,1],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"batu","x":-1,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"angin","at":1,"dur":2},{"n":"api","at":0,"dur":3}]},{"env":"gua","narasi":"Wuuush! Embusan napas Oga membuat percikan berubah menjadi lidah api hangat yang mendadak membumbung tinggi. Cahaya oranye berkilau terang meledak menembus kegelapan, menyapu rasa dingin dan melempar bayangan indah di dinding gua.","actors":[{"id":"oga","warna":"#FF6F00","x":0,"z":0,"anim":"sorak","go":[0,0],"hadap":[0.2,0]},{"id":"mimi","warna":"#0288D1","x":1,"z":0.5,"anim":"sorak","go":[1,0.5],"hadap":[0.2,0]},{"id":"buri","warna":"#4E342E","x":-3,"z":2,"anim":"takut","go":[-2,1],"delay":1,"hadap":[0.2,0]},{"id":"kiki","warna":"#7CB342","x":-4,"z":1,"anim":"lambai","go":[-3,0.5],"delay":1,"hadap":[0.2,0]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"batu","x":-1,"z":0,"s":1,"r":0,"mulai":0},{"a":"api","x":0.2,"z":0,"s":1.5,"r":0,"mulai":1}],"sfx":[{"n":"api","at":1,"dur":4}]},{"env":"gua","narasi":"Api pertama dalam sejarah suku akhirnya tercipta dengan sempurna! Oga memandangi kobaran hangat itu dengan mata berbinar bangga, menyadari bahwa ketakutannya malam ini telah melahirkan penyelamat bagi seluruh keluarganya.","actors":[{"id":"oga","warna":"#FF6F00","x":0,"z":0,"anim":"sorak","go":[0,0],"hadap":[0.2,0]},{"id":"mimi","warna":"#0288D1","x":1,"z":0.5,"anim":"lambai","go":[1,0.5],"hadap":[0.2,0]},{"id":"buri","warna":"#4E342E","x":-1.5,"z":0.5,"anim":"diam","go":[-1.5,0.5],"hadap":[0.2,0]},{"id":"kiki","warna":"#7CB342","x":-2,"z":0,"anim":"sorak","go":[-2,0],"hadap":[0.2,0]}],"cam":{"tipe":"dekat","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"api","x":0.2,"z":0,"s":1.5,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":4}]},{"env":"gua","narasi":"Buri melangkah mendekat dengan rasa takjub yang tak mampu ia sembunyikan lagi. Hawa hangat yang membelai wajahnya meruntuhkan seluruh keraguan Sang Pemimpin suku secara perlahan.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0.5,"anim":"duduk","go":[-1,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":2,"z":0,"anim":"tunjuk","go":[0.8,0],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-1.5,"z":1.5,"anim":"duduk","go":[-1.5,1.5],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":1.2,"z":1.5,"anim":"duduk","go":[1.2,1.5],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0.8,0]},"props":[{"a":"gua","x":0,"z":0,"s":3,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1,"r":0,"mulai":0},{"a":"batu","x":-1.5,"z":-1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5}]},{"env":"gua","narasi":"Kiki bersorak gembira tanpa henti saat merasakan kehangatan itu! Dengan bertingkah dramatis, ia segera mengarahkan sisa makanan bekunya ke dekat api sambil menari-nari girang.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0.5,"anim":"duduk","go":[-1,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":0.8,"z":0,"anim":"diam","go":[0.8,0],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-1.5,"z":1,"anim":"sorak","go":[-0.7,0.5],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":1.2,"z":1.5,"anim":"duduk","go":[1.2,1.5],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[-0.7,0.5]},"props":[{"a":"gua","x":0,"z":0,"s":3,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5}]},{"env":"gua","narasi":"Mimi mengamati pergerakan lidah api yang menari-nari dengan mata berbinar penuh rasa kagum. Rasa ingin tahunya terpuaskan melihat bagaimana cahaya ajaib itu mengusir kegelapan malam secara sempurna.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0.5,"anim":"duduk","go":[-1,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":0.8,"z":0,"anim":"duduk","go":[0.8,0],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-0.7,"z":0.5,"anim":"duduk","go":[-0.7,0.5],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":1.2,"z":1,"anim":"tunjuk","go":[0.6,0.5],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0.6,0.5]},"props":[{"a":"gua","x":0,"z":0,"s":3,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5}]},{"env":"gua","narasi":"Rasa dingin yang menyiksa kini berganti menjadi kehangatan yang menenangkan seluruh sudut gua. Suku purba itu tak lagi menggigil ketakutan di tengah kejamnya malam musim dingin.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0,"anim":"duduk","go":[-1,0],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":1,"z":0,"anim":"duduk","go":[1,0],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":-0.5,"z":1,"anim":"sorak","go":[-0.5,1],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":0.5,"z":1,"anim":"duduk","go":[0.5,1],"hadap":[0,0]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":3,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1.2,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5},{"n":"angin","at":0,"dur":5}]},{"env":"gua","narasi":"Di sekeliling kehangatan api yang membumbung tinggi, Buri, Mimi, Kiki, dan Oga akhirnya duduk melingkar bersama. Tidak ada lagi bibir yang gemetar karena membeku, hanya ada tawa lega dan kebersamaan hangat yang menyelimuti seluruh sudut gua.","actors":[{"id":"oga","warna":"#FF6F00","x":-1,"z":0.5,"anim":"duduk","go":[-1,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":1,"z":0.5,"anim":"duduk","go":[1,0.5],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":1.2,"z":-0.8,"anim":"sorak","go":[1.2,-0.8],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":-1.2,"z":-0.8,"anim":"duduk","go":[-1.2,-0.8],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":8}]},{"env":"gua","narasi":"Kiki bersorak kegirangan sambil menikmati hawa hangat yang membelaunya. Buri merangkul Oga dengan rasa bangga yang mendalam, sementara Mimi terus memperhatikan pendar api yang menari-nari dengan mata berbinar penuh takjub.","actors":[{"id":"oga","warna":"#FF6F00","x":-0.8,"z":0.5,"anim":"diam","go":[-0.8,0.5],"hadap":[0,0]},{"id":"buri","warna":"#4E342E","x":0.8,"z":0.5,"anim":"lambai","go":[0.8,0.5],"hadap":[-0.8,0.5]},{"id":"kiki","warna":"#7CB342","x":1.2,"z":-0.8,"anim":"sorak","go":[1.2,-0.8],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":-1.2,"z":-0.8,"anim":"tunjuk","go":[-1.2,-0.8],"hadap":[0,0]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":8}]},{"env":"gua","narasi":"Oga menghela napas lega dan tersenyum lembut. Keberanian kecilnya malam ini berhasil mengalahkan ketakutan besar demi melindungi keluarga yang dicintainya. Malam purba yang tadinya mencekam kini berubah menjadi ruang penuh kedamaian dan harapan.","actors":[{"id":"oga","warna":"#FF6F00","x":0,"z":0,"anim":"lambai","go":[0,0],"hadap":[1,0]},{"id":"buri","warna":"#4E342E","x":2,"z":0.5,"anim":"duduk","go":[2,0.5],"hadap":[0,0]},{"id":"kiki","warna":"#7CB342","x":1.8,"z":-0.8,"anim":"duduk","go":[1.8,-0.8],"hadap":[0,0]},{"id":"mimi","warna":"#0288D1","x":-1.8,"z":-0.8,"anim":"duduk","go":[-1.8,-0.8],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"api","x":0,"z":0,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":8}]},{"env":"gua","narasi":"Sebuah percikan kecil dari batu hitam malam itu telah menyalakan awal peradaban manusia. Keberanian Oga melawan ketakutannya membuka jalan bagi hangatnya kebersamaan yang terus kita rasakan hingga hari ini.","actors":[{"id":"oga","warna":"#FF6F00","x":1,"z":1,"anim":"duduk","go":[1,1],"hadap":[0,1]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"api","x":0,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5}]},{"env":"gua","narasi":"Kisah petualangan Oga dan sukunya ini merupakan dramatisasi fiksi dari sejarah penemuan api di zaman purba. Sebuah pengingat bahwa kehangatan sejati selalu bermula dari keberanian untuk mencoba hal baru.","actors":[{"id":"oga","warna":"#FF6F00","x":1,"z":1,"anim":"lambai","go":[1,1],"hadap":[0,0]}],"cam":{"tipe":"dekat","fokus":[1,1]},"props":[{"a":"gua","x":0,"z":0,"s":2,"r":0,"mulai":0},{"a":"api","x":0,"z":1,"s":1,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5}]},{"env":"malam","narasi":"Kini, api itu akan terus menyala. Menjaga malam tetap hangat, memadamkan ketakutan, dan menerangi setiap langkah perjalanan manusia menuju masa depan.","actors":[{"id":"oga","warna":"#FF6F00","x":1,"z":1,"anim":"diam","go":[1,1],"hadap":[0,1]}],"cam":{"tipe":"lebar","fokus":[0,0]},"props":[{"a":"pohon","x":-4,"z":-1,"s":1,"r":0,"mulai":0},{"a":"api","x":0,"z":1,"s":1.2,"r":0,"mulai":0}],"sfx":[{"n":"api","at":0,"dur":5},{"n":"angin","at":1,"dur":4}]}]};
 let SV=null;try{SV=localStorage.getItem('fs_film')}catch(e){}$('js').value=SV||JSON.stringify(DEMO,null,1);
 let FILM=DEMO,BUF=[],D=[],ST=[],TOT=1,cur=-1,lastT=-1,PR=[],AA=[];let EB=[],SPD=1,EBC={},HB=.95,WX=false;const PZ=/percik|bunga api/i;
-function plan(){let a=0;D=FILM.scenes.map((s,i)=>{const b=EB[i]||BUF[i];return Math.max(b?b.duration+.7:0,(s.dur||0)/SPD,(s.narasi||'').length/13/SPD,3/SPD)});ST=D.map(d=>{const q=a;a+=d;return q});TOT=a+1.5}if(SV){try{FILM=JSON.parse(SV)}catch(e){}}plan();
+function plan(){let a=0;D=FILM.scenes.map((s,i)=>{const b=EB[i]||BUF[i];return Math.max(b?b.duration+.7:0,(s.dur||0)/SPD,(s.narasi||'').length/13/SPD,3/SPD)});ST=D.map(d=>{const q=a;a+=d;return q});TOT=a+1.5;if(UIR){renderInfo();renderScenes()}}if(SV){try{FILM=JSON.parse(SV)}catch(e){}}plan();
 $('ba').onclick=()=>{try{FILM=JSON.parse($('js').value);if(!FILM.scenes||!FILM.scenes.length)throw new Error('scenes kosong');BUF=[];EB=[];plan();cur=-1;lastT=-1;PV=null;try{localStorage.setItem('fs_film',$('js').value)}catch(e){}{const u=unknown(FILM);st('Naskah diterapkan: '+FILM.scenes.length+' adegan, kira-kira '+(TOT/60).toFixed(1)+' menit.'+(u.props.length||u.anim.length?' Belum didukung: '+u.props.concat(u.anim).join(', ')+'.':''))}}catch(e){st('JSON tidak valid: '+e.message)}};
 function caps(tx){const out=[];(tx.match(/[^.!?]+[.!?]*\s*/g)||[tx]).forEach(sn=>{sn=sn.trim();while(sn.length>84){let k=sn.lastIndexOf(',',80);if(k<30)k=sn.lastIndexOf(' ',78);if(k<20)k=78;out.push(sn.slice(0,k+1).trim());sn=sn.slice(k+1).trim()}if(sn)out.push(sn)});return out}
 function clearDyn(){while(DYN.children.length)DYN.remove(DYN.children[0])}
-function setupEnv(k){const e=ENV[k]||ENV.siang;sc.background.set(e.bg);sc.fog.color.set(e.bg);sc.fog.near=k=='gua'?12:18;sc.fog.far=k=='gua'?34:60;HB=e.hemi;hemi.intensity=e.hemi;dl.intensity=e.sun;dl.color.set(e.sc);gm.material.color.setHex(S.tanah[k]||S.tanah.siang);STAR.visible=MOON.visible=k=='malam';DRS.out.visible=k!='gua';DRS.cv.visible=k=='gua';AMB.material.color.setHex(k=='malam'?0xd8ff7a:k=='gua'?0xffd9a0:0xffffff)}
+function setupEnv(k){const e=ENV[k]||ENV.siang;sc.background.set(e.bg);sc.fog.color.set(e.bg);sc.fog.near=k=='gua'?12:18;sc.fog.far=k=='gua'?34:60;HB=e.hemi;hemi.intensity=e.hemi;hemi.color.set(e.hs);hemi.groundColor.set(e.hg);dl.intensity=e.sun;dl.color.set(e.sc);dl.castShadow=e.sh;dl.position.copy(k=='malam'?MOON.position:k=='gua'?CAVE_SRC:SUN_SRC).setLength(k=='gua'?16:34);
+ gm.material.color.setHex(S.tanah[k]||S.tanah.siang);STAR.visible=MOON.visible=MOONG.visible=k=='malam';SUNM.visible=k=='siang';DRS.out.visible=k!='gua';DRS.cv.visible=k=='gua';AMB.material.color.setHex(k=='malam'?0xd8ff7a:k=='gua'?0xffd9a0:0xffffff)}
 function setup(i){const s=FILM.scenes[i];cur=i;clearDyn();setupEnv(s.env);
  let pl=(s.props||[]).slice();if(s.env=='gua'&&!pl.some(p=>p.a=='gua'))pl.unshift({a:'gua',x:0,z:0});if(s.auto!==0){const tx=s.narasi||'',has=a=>pl.some(p=>p.a==a),cv=s.env=='gua';
  if(/serigala|binatang|buas|auman|raungan|pemangsa|harimau|macan/i.test(tx)&&!has('serigala')&&!has('mata'))pl.push(...(cv?[{a:'mata',x:-5,z:-2.6},{a:'mata',x:4.7,z:-1.6},{a:'mata',x:0,z:-4.2}]:[{a:'serigala',x:-7.5,z:3.5,r:-.3},{a:'serigala',x:8,z:2,r:3.4}]));
@@ -302,7 +388,44 @@ function setup(i){const s=FILM.scenes[i];cur=i;clearDyn();setupEnv(s.env);
  if(/tulang|daging|buruan|makan/i.test(tx)&&!has('tulang'))pl.push({a:'tulang',x:-2.2,z:2.8,s:1.5});
  if(/daun|rumput|kering/i.test(tx)&&!has('daun')&&!/tanpa sisa|melayang jauh/.test(tx))pl.push({a:'daun',x:2,z:2.2,s:1.6})}
  PR=pl.map(p=>{const b=LIB[p.a]||BI[p.a];if(!b)return null;let r;try{r=b()}catch(e){return null}r.obj.position.set(p.x||0,0,p.z||0);r.obj.scale.setScalar(p.a=='gua'?1:(p.s||1));r.obj.rotation.y=p.r||0;r.m=p.mulai||0;r.a=p.a;DYN.add(r.obj);return r}).filter(Boolean);
- AA=(s.actors||[]).map(d=>{const a=getActor(d.id,d.warna);a.d=d;a.emo=emoOf(d,s.narasi,d.anim);a.pos.set(d.x||0,0,d.z||0);a.yaw=d.yaw!=null?d.yaw:(d.hadap?Math.atan2(d.hadap[0]-(d.x||0),d.hadap[1]-(d.z||0)):0);a.ph=0;a.s0=null;{const fq=PR.find(r=>r.a=='api');a.rf=refine(d,s.narasi,fq&&{x:fq.obj.position.x,z:fq.obj.position.z})}a.root.rotation.y=a.yaw;DYN.add(a.root);return a});if(s.env=='gua')AA.forEach(a=>{const cp=(x,z)=>[Math.max(-4,Math.min(4,x)),Math.max(-2,Math.min(2.6,z))],p0=cp(a.pos.x,a.pos.z);a.pos.set(p0[0],0,p0[1]);if(a.d.go)a.d.go=cp(a.d.go[0],a.d.go[1])});BLW=/menerbangkan|berterbangan/.test(s.narasi||'')?1.3:1e9;WX=s.env!='gua'&&(s.cuaca=='salju'||(s.cuaca!='tidak'&&/salju|badai/i.test(s.narasi||'')))}
+ if(s.env=='gua'){const hf=PR.some(r=>r.a=='api');dl.intensity=hf?.12:.35;HB=hemi.intensity=hf?.45:.55}
+ AA=(s.actors||[]).map(d=>{const a=getActor(d.id,d.warna);a.d=d;a.emo=emoOf(d,s.narasi,d.anim);a.pos.set(d.x||0,0,d.z||0);a.yaw=d.yaw!=null?d.yaw:(d.hadap?Math.atan2(d.hadap[0]-(d.x||0),d.hadap[1]-(d.z||0)):0);a.ph=0;a.s0=null;{const fq=PR.find(r=>r.a=='api');a.rf=refine(d,s.narasi,fq&&{x:fq.obj.position.x,z:fq.obj.position.z})}a.root.rotation.y=a.yaw;DYN.add(a.root);return a});AA.forEach(a=>{a.go2=a.d.go?[a.d.go[0],a.d.go[1]]:null});if(s.env=='gua')AA.forEach(a=>{const cp=(x,z)=>[Math.max(-4,Math.min(4,x)),Math.max(-2,Math.min(2.6,z))],p0=cp(a.pos.x,a.pos.z);a.pos.set(p0[0],0,p0[1]);if(a.go2)a.go2=cp(a.go2[0],a.go2[1])});layout(AA,PR,s.env);BLW=/menerbangkan|berterbangan/.test(s.narasi||'')?1.3:1e9;WX=s.env!='gua'&&(s.cuaca=='salju'||(s.cuaca!='tidak'&&/salju|badai/i.test(s.narasi||'')))}
+
+/* ---------- v9: tata letak karakter (tidak menembus api/benda, tidak bertumpuk) ---------- */
+const SITA=/^(duduk|duduk_peluk|duduk_sedih|tiup|berlutut|percikLutut)$/,WIDE=/^(sorak|menari|kaget|terpental|lambai|tertawa|takjub|bersin)$/,PAIR={peluk:1.1,rangkul:1,gosokOrang:.95},FACE=/^(hangat|hangatApi|menggigil|duduk|duduk_peluk|duduk_sedih|tiup|berlutut|takjub|amati|genggam)$/,OBR={pohon:.45,batu:.68,semak:.55,api:1,ranting:.35,tulang:.35,kulit:.4,serigala:1.05};
+let OBS=[],BOX=[-9,9,-9,9];
+const bodyR=a=>{const an=a.rf||(a.d&&a.d.anim)||'diam';return SITA.test(an)||(an=='hangatApi'&&a.d&&a.d.anim=='duduk')?.62:WIDE.test(an)?.52:an=='lari'?.48:.4};
+/* P: titik {x,z,r,mv,pt,pd}; O: rintangan bulat {x,z,r}; menggeser titik yang mv sampai tidak tumpang tindih */
+function relax(P,O,box,n,pull){for(let it=0;it<n;it++){let mvd=0;
+ for(const p of P){if(!p.mv)continue;for(const o of O){const m=o.r+p.r*.8;let dx=p.x-o.x,dz=p.z-o.z,d=Math.hypot(dx,dz);if(d<m-1e-4){if(d<1e-3){dx=0;dz=1;d=1}const k=(m-d)/d;p.x+=dx*k;p.z+=dz*k;mvd++}}}
+ for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const a=P[i],b=P[j];if(!a.mv&&!b.mv)continue;const pr=a.pt===j?a.pd:b.pt===i?b.pd:0,m=pr||a.r+b.r;let dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz);
+  if(d<1e-3){const q=i*2.4+j;dx=Math.cos(q)*.01;dz=Math.sin(q)*.01;d=.01}
+  const wa=a.mv?1:0,wb=b.mv?1:0,s=wa+wb;
+  if(d<m-1e-4){const k=(m-d)/d;a.x-=dx*k*wa/s;a.z-=dz*k*wa/s;b.x+=dx*k*wb/s;b.z+=dz*k*wb/s;mvd++}
+  else if(pull&&pr&&d>pr+.3){const k=(d-pr-.15)/d;a.x+=dx*k*wa/s;a.z+=dz*k*wa/s;b.x-=dx*k*wb/s;b.z-=dz*k*wb/s;mvd++}}
+ if(box)for(const p of P)if(p.mv){p.x=Math.max(box[0],Math.min(box[1],p.x));p.z=Math.max(box[2],Math.min(box[3],p.z))}
+ if(!mvd)break}}
+function layout(AA,PR,env){OBS=[];
+ PR.forEach(r=>{const a=r.a;if(!a||a=='gua'||a=='mata'||a=='daun')return;const s=r.obj.scale.x||1;let q=OBR[a];
+  if(q==null){try{const z=new THREE.Box3().setFromObject(r.obj).getSize(new THREE.Vector3());if(z.y>.5)q=Math.max(z.x,z.z)/2*.85/s}catch(e){}}
+  if(q)OBS.push({x:r.obj.position.x,z:r.obj.position.z,r:q*s,k:a})});
+ BOX=env=='gua'?[-4,4,-2,2.6]:[-9,9,-9,9];
+ const F=OBS.find(o=>o.k=='api');if(!AA.length)return;
+ AA.forEach(a=>{a.br=bodyR(a)});
+ /* 1) posisi akhir; yang tidak berjalan memakai posisi akhir ini juga sebagai posisi awalnya */
+ const E=AA.map(a=>{const g=a.go2||[a.pos.x,a.pos.z];return{x:g[0],z:g[1],r:a.br,mv:1,pt:-1,pd:0}});
+ if(F)E.forEach((p,i)=>{const dx=p.x-F.x,dz=p.z-F.z,d=Math.hypot(dx,dz);if(d<3.8){const t=/^(tiup|berlutut)$/.test(AA[i].rf),R=Math.max(t?1.45:1.75,Math.min(2.5,d)),q=d<.05?i*1.9:Math.atan2(dz,dx);p.x=F.x+Math.cos(q)*R;p.z=F.z+Math.sin(q)*R}});
+ AA.forEach((a,i)=>{const w=PAIR[a.rf];if(!w)return;let b=-1,bd=3.5;E.forEach((q,j)=>{if(j==i)return;const d=Math.hypot(q.x-E[i].x,q.z-E[i].z);if(d<bd){bd=d;b=j}});if(b>=0){E[i].pt=b;E[i].pd=w+(a.br>.6||AA[b].br>.6?.1:0)}});
+ relax(E,OBS,BOX,80,true);
+ /* 2) posisi awal pejalan, menghindari yang diam */
+ const S=AA.map((a,i)=>a.go2?{x:a.pos.x,z:a.pos.z,r:a.br,mv:1,pt:-1,pd:0}:{x:E[i].x,z:E[i].z,r:a.br,mv:0,pt:-1,pd:0});
+ relax(S,OBS,BOX,60,false);
+ AA.forEach((a,i)=>{a.pos.set(S[i].x,0,S[i].z);a.go2=a.go2?[E[i].x,E[i].z]:null;a.lx=S[i].x;a.lz=S[i].z;a.pti=E[i].pt;a.pd=E[i].pd;a.fa=null;a.fp=null;
+  if(E[i].pt>=0)a.fa=AA[E[i].pt];else if(F&&Math.hypot(E[i].x-F.x,E[i].z-F.z)<3.4&&(FACE.test(a.rf)||!a.d.hadap))a.fp=[F.x,F.z];else if(a.d.hadap)a.fp=[a.d.hadap[0],a.d.hadap[1]]});
+ AA.forEach((a,i)=>{if(E[i].pt>=0){const b=AA[E[i].pt];if(!b.fa)b.fa=a}});
+ AA.forEach(a=>{if(a.d.yaw==null){const t=a.fa?[a.fa.pos.x,a.fa.pos.z]:a.fp;if(t&&Math.hypot(t[0]-a.pos.x,t[1]-a.pos.z)>.1)a.yaw=Math.atan2(t[0]-a.pos.x,t[1]-a.pos.z)}a.root.rotation.y=a.yaw})}
+/* dipanggil tiap frame: pejalan yang berpapasan/melewati api membelok, yang diam tidak digeser */
+function avoid(AA){if(AA.length<2&&!OBS.length)return;const P=AA.map(a=>({x:a.pos.x,z:a.pos.z,r:a.br,mv:a.go2?1:0,pt:a.pti,pd:a.pd}));relax(P,OBS,BOX,6,false);AA.forEach((a,i)=>{a.pos.x=P[i].x;a.pos.z=P[i].z})}
 
 /* ---------- frame ---------- */
 const tp=new THREE.Vector3(),tl=new THREE.Vector3(),cl2=new THREE.Vector3(),v3=new THREE.Vector3();
@@ -310,16 +433,17 @@ function frame(t,A){
  if(PV&&!play&&!busy){preview(A);return}
  let dt=lastT<0||t<lastT?0:Math.min(t-lastT,.1);if(t<lastT){cur=-1}lastT=t;
  let i=ST.findIndex((s,k)=>t<s+D[k]);if(i<0)i=FILM.scenes.length-1;if(i!=cur){setup(i);if(dt==0){cam.position.set(0,3.8,12);cl2.set(0,1.2,0)}}
- const s=FILM.scenes[i],lt=t-ST[i],c=s.cam||{},fk=c.fokus||[0,0];
+ const s=FILM.scenes[i],lt=t-ST[i],c=CAMO?{tipe:CAMO}:(s.cam||{}),fk=c.fokus||[0,0];
  {let wn=0;(s.sfx||[]).forEach(x=>{if(x.n=='angin'){const q=lt-(x.at||0)/SPD,d=x.dur||3,e=cl(Math.min((q+.3)/.8,(d+.5-q)/.8)),b=d<2.5?.3:(/kencang|dahsyat|badai|keras|menerjang|pusaran/.test(s.narasi||'')?1:.55);wn=Math.max(wn,e*b)}});WN=wn*(s.env=='gua'?.85:1)*(.8+.2*msn(A*.9)*msn(A*2.3+1))}LT=lt;FK=/perlahan padam|kembali padam/.test(s.narasi||'')?1-.97*ea(cl((lt-D[i]*.35)/(D[i]*.5))):1;
  PR.forEach(r=>{r.obj.visible=lt>=r.m;if(r.update)r.update(A,dt,lt-r.m,r.m)});
  AA.forEach(a=>{const d=a.d,an=a.an=a.rf||d.anim||'diam';if(!a.s0)a.s0=[a.pos.x,a.pos.z];
   let mv=false,sp=1.3,ty=null;const px=a.pos.x,pz=a.pos.z;
-  if(d.go){const dx=d.go[0]-a.s0[0],dz=d.go[1]-a.s0[1],L=Math.hypot(dx,dz);sp=SPT[an]||(/melompat/.test(s.narasi||'')?2.6:1.3);const u=cl((lt-(d.delay||0))/(L/sp||1)),e=an=='terpental'?1-Math.pow(1-u,3):u+(ea(u)-u)*.35;
+  if(a.go2){const dx=a.go2[0]-a.s0[0],dz=a.go2[1]-a.s0[1],L=Math.hypot(dx,dz);sp=SPT[an]||(/melompat/.test(s.narasi||'')?2.6:1.3);const u=cl((lt-(d.delay||0))/(L/sp||1)),e=an=='terpental'?1-Math.pow(1-u,3):u+(ea(u)-u)*.35;
    a.pos.x=a.s0[0]+dx*e;a.pos.z=a.s0[1]+dz*e;mv=L>.06&&u>0&&u<1&&!(L<.7&&/duduk|hangatApi/.test(an));if(mv&&an!='terpental')ty=Math.atan2(dx,dz)}
-  if(ty==null&&d.hadap&&Math.hypot(d.hadap[0]-a.pos.x,d.hadap[1]-a.pos.z)>.1)ty=Math.atan2(d.hadap[0]-a.pos.x,d.hadap[1]-a.pos.z);
+  {const fq=a.fa?[a.fa.pos.x,a.fa.pos.z]:a.fp;if(ty==null&&fq&&Math.hypot(fq[0]-a.pos.x,fq[1]-a.pos.z)>.1)ty=Math.atan2(fq[0]-a.pos.x,fq[1]-a.pos.z)}
   let df=0;if(ty!=null){df=Math.atan2(msn(ty-a.yaw),mcs(ty-a.yaw));a.yaw+=df*(dt?Math.min(1,dt*(mv?8:5)):1)}
-  a.ph+=(an=='terpental'?-1:1)*Math.hypot(a.pos.x-px,a.pos.z-pz)/(sp>2.2?1:.56)*Math.PI;a.root.rotation.y=a.yaw;pose(a,an,A,dt,mv,sp,mv?0:df)});
+  a.sp=sp;a.root.rotation.y=a.yaw;pose(a,an,A,dt,mv,sp,mv?0:df)});
+ avoid(AA);AA.forEach(a=>{a.ph+=(a.an=='terpental'?-1:1)*Math.hypot(a.pos.x-a.lx,a.pos.z-a.lz)/(a.sp>2.2?1:.56)*Math.PI;a.lx=a.pos.x;a.lz=a.pos.z});
  let cx0=0,cz0=0,spr=0;if(AA.length){AA.forEach(a=>{cx0+=a.pos.x;cz0+=a.pos.z});cx0/=AA.length;cz0/=AA.length;AA.forEach(a=>{spr=Math.max(spr,Math.hypot(a.pos.x-cx0,a.pos.z-cz0))})}else if(c.fokus){cx0=fk[0];cz0=fk[1]}
  const asp=RW/RH,tv=.364,fit=(h,w)=>Math.max(h/2/tv,w/2/(tv*asp)),bb=L=>{let a=1e9,b=-1e9,z=0;L.forEach(q=>{a=Math.min(a,q.pos.x);b=Math.max(b,q.pos.x);z+=q.pos.z});return L.length?{w:b-a+2.6,x:(a+b)/2,z:z/L.length}:{w:6,x:cx0,z:cz0}};
  let G=AA;if(c.tipe=='dekat'&&c.fokus){const f=AA.filter(q=>Math.hypot(q.pos.x-fk[0],q.pos.z-fk[1])<3.6);if(f.length)G=f}
@@ -329,13 +453,13 @@ function frame(t,A){
  else if(c.tipe=='dekat'){tp.set(Bx.x+dd*.22,1.75,Bx.z+dd);tl.set(Bx.x,1.4,Bx.z)}
  else if(c.tipe=='atas'){tp.set(Bx.x,dd*.62+1,Bx.z+dd*.85);tl.set(Bx.x,.8,Bx.z)}
  else{tp.set(Bx.x*.8,2.4,Bx.z+dd);tl.set(Bx.x,1.5,Bx.z)}
- STAR.visible=MOON.visible=s.env=='malam';let fl=0;(s.sfx||[]).forEach(x=>{if(x.n=='petir'){const q=lt-(x.at||0)/SPD;if(q>=0&&q<.7)fl=Math.max(fl,(1-q/.7)*(.55+.45*Math.sin(q*70)))}});
- hemi.intensity=HB+fl*4;BOLT.visible=fl>.25;if(BOLT.visible){const tr=PR.find(r=>r.a=='pohon');BOLT.position.set(tr?tr.obj.position.x:-4,0,tr?tr.obj.position.z-.5:-4)}
- SN.visible=WX;if(WX)snowUpd(A,dt);let spOn=false,sx0=0,sz0=0;AA.forEach(a=>{if(a.an=='percik'){spOn=true;sx0=a.pos.x+Math.sin(a.yaw)*.6;sz0=a.pos.z+Math.cos(a.yaw)*.6}});sparkUpd(spOn,sx0,1,sz0,dt||.016);
+ STAR.visible=MOON.visible=MOONG.visible=s.env=='malam';SUNM.visible=s.env=='siang';let fl=0;(s.sfx||[]).forEach(x=>{if(x.n=='petir'){const q=lt-(x.at||0)/SPD;if(q>=0&&q<.7)fl=Math.max(fl,(1-q/.7)*(.55+.45*Math.sin(q*70)))}});
+ {const tr=PR.find(r=>r.a=='pohon'),bx=tr?tr.obj.position.x:-4,bz=tr?tr.obj.position.z-.5:-4,e0=ENV[s.env]||ENV.siang;hemi.intensity=HB+fl*1.4;BOLT.visible=fl>.25;if(BOLT.visible)BOLT.position.set(bx,0,bz);FLT.position.set(bx,11,bz);FLT.intensity=fl*3.4;sc.background.set(e0.bg);if(fl>.01)sc.background.lerp(WHT,Math.min(.5,fl*.5));sc.fog.color.copy(sc.background)}
+ SN.visible=WX;if(WX)snowUpd(A,dt);let spOn=false,sx0=0,sz0=0;AA.forEach(a=>{if(a.an=='percik'){spOn=true;sx0=a.pos.x+Math.sin(a.yaw)*.6;sz0=a.pos.z+Math.cos(a.yaw)*.6}});sparkUpd(spOn,sx0,1,sz0,dt||.016);SPL.position.set(sx0,1.1,sz0);SPL.intensity=spOn?1.6+Math.sin(A*43)*.5+Math.sin(A*17)*.3:0;
  const k=dt?1-Math.exp(-dt*2.5):1;cam.position.lerp(tp,k);cl2.lerp(tl,k);v3.copy(cl2);v3.x+=Math.sin(A*.6)*.05;cam.lookAt(v3);
  ambUpd(A);windFx(A);draw(t,i,lt);}
 function preview(A){cam.position.set(Math.sin(A*.5)*5,2.6,Math.cos(A*.5)*5);cam.lookAt(0,1,0);if(PV.update)PV.update(A,.016);PV.obj.rotation.y=0;ren.render(sc,cam);g.drawImage(ren.domElement,0,0,RW,RH)}
-function draw(t,i,lt){ren.render(sc,cam);g.drawImage(ren.domElement,0,0,RW,RH);g.save();g.scale(RW/1280,RW/1280);g.textAlign='center';
+function draw(t,i,lt){ren.render(sc,cam);g.drawImage(ren.domElement,0,0,RW,RH);if(NOUI)return;g.save();g.scale(RW/1280,RW/1280);g.textAlign='center';
  const s=FILM.scenes[i],tx=s.narasi||'',eb=EB[i]||BUF[i],dur=eb?eb.duration:D[i]*.8;
  if(tx&&CFG.sub&&t<TOT-1.5){const ch=caps(tx),tl=ch.reduce((a,c)=>a+c.length,0);let acc=0,k=0;for(;k<ch.length-1;k++){if((lt-.2)/dur*tl<acc+ch[k].length)break;acc+=ch[k].length}
   const cu=ch[k],a0=.2+acc/tl*dur,a1=.2+(acc+cu.length)/tl*dur,al=cl(Math.min((lt-a0)/.2,(a1-lt)/.2+.5));
@@ -417,8 +541,8 @@ $('g3').onclick=async()=>{svC();$('g3').disabled=true;
   svS()}
   sst('Naskah selesai ('+nb+' babak). Tekan 4. Terapkan ke film.')}
  catch(e){const f=STO.sc.findIndex(x=>!x||!x.length);sst('Berhenti di babak '+((f<0?STO.sc.length:f)+1)+': '+(e.message||e)+'. Tekan 3 lagi untuk melanjutkan; babak yang sudah jadi tidak diulang.')}$('g3').disabled=false};
-$('g4').onclick=()=>{const all=[].concat(...STO.sc.filter(Boolean));if(!all.length){sst('Belum ada naskah. Jalankan langkah 3.');return}
- $('js').value=JSON.stringify({judul:(STO.ide||{}).judul||'Film',scenes:all},null,1);$('ba').click();sst('Naskah diterapkan: '+all.length+' adegan, kira-kira '+(TOT/60).toFixed(1)+' menit'+(TOT<600?' (kurang dari 10 menit, tambah panjang kerangka atau tulis ulang babak yang pendek)':'')+'. Lanjut: Siapkan suara.')};
+$('g4').onclick=()=>{const all=[];STO.sc.forEach((arr,bi)=>{if(!arr||!arr.length)return;arr.forEach((x,k)=>all.push(k==0&&STO.beats&&STO.beats[bi]&&STO.beats[bi].judul?Object.assign({judul:String(STO.beats[bi].judul)},x):x))});if(!all.length){sst('Belum ada naskah. Jalankan langkah 3.');return}
+ $('js').value=JSON.stringify({judul:(STO.ide||{}).judul||'Film',scenes:all},null,1);$('ba').click();setTimeout(autoAll,50);sst('Naskah diterapkan: '+all.length+' adegan, kira-kira '+(TOT/60).toFixed(1)+' menit'+(TOT<600?' (kurang dari 10 menit, tambah panjang kerangka atau tulis ulang babak yang pendek)':'')+'. Lanjut: Siapkan suara.')};
 
 /* ---------- efek suara sintetis ---------- */
 function synth(c,out,n,t0,dur){const sr=c.sampleRate,len=Math.max(.3,dur||1),nb=c.createBuffer(1,Math.ceil(sr*len),sr),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
@@ -451,7 +575,7 @@ $('wl').onclick=()=>wlSet({off:'on',on:'auto',auto:'off'}[WM]);wlSet(WM);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible'&&(WM=='on'||(WM=='auto'&&busy)))wlAcq()});
 const KA=['diam','lambai','sorak','takut','gosok','tunjuk','duduk','pukul','lari','menggigil','peluk','bersin','terpental','tiup','intip','makan','berlutut','tertawa','kaget','percik'];
 function unknown(F){const pr=new Set(),an=new Set();F.scenes.forEach(s=>{(s.props||[]).forEach(p=>{if(!(BI[p.a]||LIB[p.a]))pr.add(p.a)});(s.actors||[]).forEach(a=>{if(a.anim&&!KA.includes(a.anim))an.add(a.anim)})});return{props:[...pr],anim:[...an]}}
-$('bx').onclick=()=>{const need=[];FILM.scenes.forEach((s,i)=>(s.butuh_baru||[]).forEach(x=>need.push({adegan:i+1,butuh:x})));const pk={versi:'studio-film-v7',film:FILM,ide:(typeof STO!=='undefined'&&STO.ide)||null,kerangka:(typeof STO!=='undefined'&&STO.beats)||null,butuh_baru:need,tidak_dikenal:unknown(FILM)};
+$('bx').onclick=()=>{const need=[];FILM.scenes.forEach((s,i)=>(s.butuh_baru||[]).forEach(x=>need.push({adegan:i+1,butuh:x})));const pk={versi:'studio-film-v9',meta:{t:CFG.yt.t,d:CFG.yt.d,g:CFG.yt.g,k:CFG.yt.k,sm:CFG.yt.sm,sd:CFG.yt.sd},film:FILM,ide:(typeof STO!=='undefined'&&STO.ide)||null,kerangka:(typeof STO!=='undefined'&&STO.beats)||null,butuh_baru:need,tidak_dikenal:unknown(FILM)};
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(pk,null,1)],{type:'application/json'}));a.download='paket-proyek.json';a.click();st('Paket proyek diunduh.')};
 /* ---------- putar ---------- */
 /* ---------- v7: pemutar (jeda, geser, kecepatan, layar penuh) ---------- */
@@ -537,7 +661,7 @@ const saveF=(blob,fn)=>{const a=document.createElement('a');a.href=URL.createObj
 $('ai').onclick=()=>$('fi').click();
 $('fi').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
  try{const p=JSON.parse(await f.text());if(!p.film||!p.film.scenes)throw new Error('bukan paket proyek Studio Film');
-  $('js').value=JSON.stringify(p.film,null,1);if(p.ide){STO.ide=p.ide;$('s1').value=JSON.stringify(p.ide,null,1)}if(p.kerangka){STO.beats=p.kerangka;$('s2').value=JSON.stringify(p.kerangka,null,1)}svS();$('ba').click();st('Paket diimpor: '+p.film.scenes.length+' adegan. Tekan Siapkan suara untuk narasi.')}
+  if(p.meta){['t','d','g','k'].forEach(x=>{if(p.meta[x])CFG.yt[x]=p.meta[x]});CFG.yt.man=1;ytFill()}$('js').value=JSON.stringify(p.film,null,1);if(p.ide){STO.ide=p.ide;$('s1').value=JSON.stringify(p.ide,null,1)}if(p.kerangka){STO.beats=p.kerangka;$('s2').value=JSON.stringify(p.kerangka,null,1)}svS();$('ba').click();if(!p.meta)setTimeout(autoAll,100);st('Paket diimpor: '+p.film.scenes.length+' adegan. Tekan Siapkan suara untuk narasi.')}
  catch(er){st('Gagal impor: '+er.message)}};
 const srtT=s=>{const m=Math.round(s*1000),p=(n,l)=>String(n).padStart(l,'0');return p(Math.floor(m/36e5),2)+':'+p(Math.floor(m%36e5/6e4),2)+':'+p(Math.floor(m%6e4/1e3),2)+','+p(m%1e3,3)};
 const makeSRT=()=>{let n=1,o='';FILM.scenes.forEach((s,i)=>{const tx=s.narasi||'';if(!tx)return;const eb=EB[i]||BUF[i],du=eb?eb.duration:D[i]*.8,ch=caps(tx),tl=ch.reduce((a,c)=>a+c.length,0);let acc=0;
@@ -547,10 +671,11 @@ $('bt').onclick=()=>{const o=makeSRT(); saveF(new Blob([o],{type:'text/plain'}),
 
 /* ---------- v8: upload langsung ke YouTube (Data API v3, OAuth GIS, resumable upload) ---------- */
 const YT_CID='447290350576-qo6qeikuere50aeedvb2mc53q2ssnk3k.apps.googleusercontent.com';
-CFG.yt=Object.assign({cid:YT_CID,t:'',d:'Dibuat dengan Studio Film.',ch:1,g:'',p:'private',k:'1',f:'false',cp:0},CFG.yt||{});
+CFG.yt=Object.assign({cid:YT_CID,t:'',d:'',ch:1,g:'',p:'private',k:'1',f:'false',cp:0,sm:'now',sd:'',sa:'',man:0},CFG.yt||{});
 if(!CFG.yt.cid)CFG.yt.cid=YT_CID;
 const YF={cid:'yc',t:'yt',d:'yd',g:'yg',p:'yp',k:'yk',f:'yf'};
-const ytFill=()=>{for(const k in YF)$(YF[k]).value=CFG.yt[k];$('ych').checked=!!CFG.yt.ch;$('ycp').checked=!!CFG.yt.cp};ytFill();
+function updCnt(){$('ct1').textContent=$('yt').value.length+'/100';$('ct2').textContent=$('yd').value.length+'/5000';$('ct3').textContent=($('yg').value.split(',').map(s=>s.trim()).filter(Boolean).reduce((n,t)=>n+t.length+(/\s/.test(t)?2:0)+1,0))+'/500'}
+const ytFill=()=>{for(const k in YF)$(YF[k]).value=CFG.yt[k];if(CFG.yt.d===DEFD0)$('yd').value='';$('ych').checked=!!CFG.yt.ch;$('ycp').checked=!!CFG.yt.cp;updCnt()};ytFill();
 const ytSave=()=>{for(const k in YF)CFG.yt[k]=$(YF[k]).value.trim?$(YF[k]).value.trim():$(YF[k]).value;CFG.yt.d=$('yd').value;CFG.yt.ch=$('ych').checked?1:0;CFG.yt.cp=$('ycp').checked?1:0;svCfg()};
 Object.values(YF).concat(['ych','ycp']).forEach(i=>$(i).onchange=ytSave);
 const yMsg=h=>{$('yl').innerHTML=h},yPr=v=>{const p=$('ypr');p.style.display=v==null?'none':'block';if(v!=null)p.value=v};
@@ -566,10 +691,6 @@ function ytToken(scope,prompt){return new Promise((ok,no)=>{
 const ytReq=(method,url,opt)=>new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open(method,url);for(const h in (opt.h||{}))x.setRequestHeader(h,opt.h[h]);
  if(opt.prog)x.upload.onprogress=opt.prog;x.onload=()=>ok(x);x.onerror=()=>no(new Error('jaringan terputus'));x.ontimeout=x.onerror;x.send(opt.b||null)});
 const apiErr=x=>{let m='HTTP '+x.status;try{const j=JSON.parse(x.responseText);m+=': '+((j.error&&(j.error.message||(j.error.errors&&j.error.errors[0].reason)))||x.responseText.slice(0,160))}catch(e){}return m};
-const chapters=()=>{let o='';FILM.scenes.forEach((s,i)=>{const t=Math.round(ST[i]),m=Math.floor(t/60),sd=String(t%60).padStart(2,'0'),nm=(s.judul||s.title||'Adegan '+(i+1));o+=m+':'+sd+' '+nm+'\n'});return o.trim()};
-function ytMeta(){const c=CFG.yt;let d=c.d||'';if(c.ch&&FILM.scenes.length>=3){let ch=chapters();if(!/^0:00/.test(ch))ch='0:00 Awal\n'+ch;d+=(d?'\n\n':'')+ch}
- const tags=(c.g||'').split(',').map(s=>s.trim()).filter(Boolean);let n=0;const tg=tags.filter(s=>(n+=s.length+1)<480);
- return{snippet:{title:(c.t||FILM.judul||'Film').slice(0,100),description:d.slice(0,4900),tags:tg,categoryId:c.k,defaultLanguage:'id'},status:{privacyStatus:c.p,selfDeclaredMadeForKids:c.f==='true',embeddable:true}}}
 async function ytUpload(blob,tok,meta){
  const sz=blob.size;let x=await ytReq('POST','https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{h:{'Authorization':'Bearer '+tok,'Content-Type':'application/json; charset=UTF-8','X-Upload-Content-Length':String(sz),'X-Upload-Content-Type':'video/mp4'},b:JSON.stringify(meta)});
  if(x.status!==200)throw new Error('Gagal memulai upload ('+apiErr(x)+')');
@@ -593,23 +714,167 @@ async function ytCaption(id,tok){
  const body=new Blob(['--'+B+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+md+'\r\n--'+B+'\r\nContent-Type: application/octet-stream\r\n\r\n',srt,'\r\n--'+B+'--']);
  const x=await ytReq('POST','https://www.googleapis.com/upload/youtube/v3/captions?uploadType=multipart&part=snippet',{h:{'Authorization':'Bearer '+tok,'Content-Type':'multipart/related; boundary='+B},b:body});
  if(x.status!==200)throw new Error(apiErr(x))}
-$('yb').onclick=async()=>{if(busy)return;ytSave();$('ytp').open=true;yMsg('');yPr(null);
+$('yb').onclick=async()=>{if(busy)return;ytSave();showTab('up');yMsg('');yPr(null);
  const wantCap=!!CFG.yt.cp,scope=SC_UP+(wantCap?' '+SC_CAP:'');
  $('yb').disabled=true;
  try{
   await ytToken(scope,YTOK?'':'consent');   /* login dulu, selagi ada sentuhan pengguna (anti blokir popup) */
   if(!BUF.some(Boolean)&&!confirm('Suara narasi belum disiapkan, video akan tanpa narasi. Lanjut?'))throw new Error('Dibatalkan.');
+  await ensureMeta();if(CFG.yt.sm==='ai')await ensureSchedule();ytSave();ytMeta();try{await ensureThumb()}catch(e){st('Thumbnail dilewati: '+(e.message||e))}
   const r=await getMP4();
   let tok;try{tok=await ytToken(scope,'')}catch(e){throw new Error(e.message+' Hasil ekspor tersimpan di memori; tekan Upload lagi tanpa render ulang.')}
-  yPr(0);const res=await ytUpload(r.blob,tok,ytMeta()),id=res.id;
+  if(CFG.yt.sm==='ai')await ensureSchedule();yPr(0);const res=await ytUpload(r.blob,tok,ytMeta()),id=res.id;
   let note='';
   if(wantCap){try{await ytCaption(id,tok);note=' Subtitle terunggah.'}catch(e){note=' Subtitle gagal: '+e.message}}
+  if(THM.data&&CFG.th.use){try{await ytThumb(id,tok);note+=' Thumbnail terpasang.'}catch(e){note+=' Thumbnail gagal: '+e.message}}
   yPr(100);const u='https://youtu.be/'+id;
-  yMsg('Berhasil diunggah (<b>'+CFG.yt.p+'</b>): <a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>.'+note+(CFG.yt.p!=='private'?' Jika video terkunci Pribadi, proyek Google Anda belum lolos audit YouTube.':''));
+  yMsg('Berhasil diunggah ('+(ytMeta(true).status.publishAt?'<b>dijadwalkan '+fmtLong(new Date(ytMeta(true).status.publishAt))+'</b>':'<b>'+CFG.yt.p+'</b>')+'): <a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>.'+note+(CFG.yt.p!=='private'?' Jika video terkunci Pribadi, proyek Google Anda belum lolos audit YouTube.':''));
   st('Selesai: video di YouTube.')
  }catch(e){yPr(null);st('Upload YouTube gagal: '+(e.message||e));yMsg('Gagal: '+(e.message||e))}
  $('yb').disabled=false};
 
 $('yout').onclick=()=>{try{if(YTOK&&window.google&&google.accounts)google.accounts.oauth2.revoke(YTOK,()=>{})}catch(e){}YTOK=null;YEXP=0;YSC='';try{localStorage.removeItem('fs_ytok')}catch(e){}yMsg('Sudah keluar dari akun YouTube.')};
-$('yman').onclick=async()=>{if(busy)return;const w=window.open('about:blank','_blank');try{const r=await getMP4();saveF(r.blob,'film.mp4');if(w)w.location.href='https://www.youtube.com/upload';else window.open('https://www.youtube.com/upload','_blank');st('MP4 tersimpan. Di halaman YouTube, pilih file film.mp4 dari folder unduhan.')}catch(e){if(w)w.close();st('Ekspor gagal: '+(e.message||e))}};
+$('yman').onclick=async()=>{if(busy)return;const w=window.open('about:blank','_blank');try{const r=await getMP4();saveF(r.blob,'film.mp4');await copyMeta(true);if(w)w.location.href='https://www.youtube.com/upload';else window.open('https://www.youtube.com/upload','_blank');st('MP4 tersimpan. Di halaman YouTube, pilih file film.mp4 dari folder unduhan.')}catch(e){if(w)w.close();st('Ekspor gagal: '+(e.message||e))}};
+
+/* ---------- v9: antarmuka ala YouTube, metadata AI, jadwal tayang ---------- */
+const ICN={share:'M18 16.1c-.8 0-1.5.3-2 .8l-7.1-4.2c.1-.2.1-.5.1-.7s0-.5-.1-.7L16 7.2c.5.5 1.2.8 2 .8a3 3 0 10-3-3c0 .2 0 .5.1.7L8 9.8A3 3 0 106 9a3 3 0 000 6c.8 0 1.5-.3 2-.8l7.2 4.2c-.1.2-.1.4-.1.6a2.9 2.9 0 102.9-2.9z',dl:'M5 20h14v-2H5zM19 9h-4V3H9v6H5l7 7z',cc:'M19 4H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM11 11H9.5v-.5h-2v3h2V13H11v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-4a1 1 0 011-1h3a1 1 0 011 1zm7 0h-1.5v-.5h-2v3h2V13H18v1a1 1 0 01-1 1h-3a1 1 0 01-1-1v-4a1 1 0 011-1h3a1 1 0 011 1z',mic:'M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11z',up:'M5 4h14v2H5zm7 4l5 5h-3.5v6h-3v-6H7z',play:'M8 5v14l11-7z',ai:'M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z'};
+document.querySelectorAll('[data-i]').forEach(b=>b.insertAdjacentHTML('afterbegin','<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="'+(ICN[b.dataset.i]||'')+'"/></svg>'));
+const TTL={watch:'',studio:'Studio',up:'Upload',set:'Setelan'};
+function showTab(n){['watch','studio','up','set'].forEach(k=>{$('v-'+k).classList.toggle('on',k==n);$('n-'+k).classList.toggle('on',k==n)});if(n!=='watch'&&play&&!paused)tog();document.body.dataset.tab=n;$('tpg').textContent=TTL[n]||'';scrollTo(0,0);if(n=='up')schUI()}
+['watch','studio','up','set'].forEach(k=>$('n-'+k).onclick=()=>showTab(k));
+const pad2=n=>String(n).padStart(2,'0'),toLoc=d=>d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());
+const fmtLong=d=>d.toLocaleString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}),fmtDT=d=>d.toLocaleString('id-ID',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+const cleanT=s=>String(s||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim(),tagCost=t=>t.length+(/\s/.test(t)?2:0)+1;
+function fitTags(arr){const seen=new Set(),out=[];let n=0;arr.forEach(t=>{t=cleanT(t).replace(/^#/,'').slice(0,60);const k=t.toLowerCase();if(!t||seen.has(k)||n+tagCost(t)>470)return;seen.add(k);n+=tagCost(t);out.push(t)});return out}
+/* penanda bab: dari judul babak bila ada, kalau tidak per ±45 detik; aturan YouTube: mulai 0:00, minimal 3 bab, tiap bab ≥10 detik */
+const chapters=()=>{const sc=FILM.scenes,L=[];if(sc.some(s=>s.judul||s.title))sc.forEach((s,i)=>{const nm=s.judul||s.title;if(nm)L.push([ST[i],String(nm)])});else{let nx=0;sc.forEach((s,i)=>{if(ST[i]>=nx){L.push([ST[i],'Bagian '+(L.length+1)]);nx=ST[i]+45}})}
+ const o=[];L.forEach(q=>{if(!o.length||q[0]-o[o.length-1][0]>=10)o.push([q[0],cleanT(q[1])])});if(!o.length||o[0][0]>1)o.unshift([0,'Awal']);else o[0][0]=0;
+ if(o.length<3)return'';return o.map(q=>{const t=Math.round(q[0]),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return(h?h+':'+pad2(m):m)+':'+pad2(s)+' '+q[1]}).join('\n')};
+const okSched=v=>{if(!v)return false;const d=new Date(v);return!isNaN(d)&&d.getTime()>Date.now()+10*60e3};
+function schedISO(){const c=CFG.yt;if(c.sm!=='man'&&c.sm!=='ai')return null;if(!c.sd||isNaN(new Date(c.sd)))throw new Error('Isi tanggal & jam tayang, atau pilih "Langsung".');if(!okSched(c.sd))throw new Error('Waktu tayang harus minimal 10 menit dari sekarang. Pilih jam lain lalu tekan Upload lagi (hasil ekspor tidak diulang).');return new Date(c.sd).toISOString()}
+function ytMeta(prev){const c=CFG.yt;let d=(!c.d||c.d===DEFD0)?'':String(c.d);d=d.replace(/[<>]/g,'').replace(/\r/g,'');
+ let ch='';if(c.ch&&FILM.scenes.length>=3)ch=chapters();let body=d,tail='';const m=/\n+((?:#[^\s#<>]+\s*)+)$/.exec(d);if(m){tail=m[1].trim();body=d.slice(0,m.index)}
+ d=body+(ch?(body?'\n\n':'')+ch:'')+(tail?'\n\n'+tail:'');
+ const tg=fitTags((c.g||'').split(',')),title=(cleanT(c.t)||cleanT(FILM.judul)||'Film').slice(0,100);let pub=null;try{pub=schedISO()}catch(e){if(!prev)throw e}
+ const st0={privacyStatus:pub?'private':c.p,selfDeclaredMadeForKids:c.f==='true',embeddable:true};if(pub)st0.publishAt=pub;
+ return{snippet:{title,description:d.slice(0,4900),tags:tg,categoryId:c.k,defaultLanguage:'id',defaultAudioLanguage:'id'},status:st0}}
+let SCA=-1;
+function renderScenes(){const el=$('scl');el.innerHTML='';FILM.scenes.forEach((s,i)=>{const b=document.createElement('button');b.className='sc';b.dataset.i=i;b.innerHTML='<span class="tm"></span><span class="tx"></span>';b.children[0].textContent=fm(ST[i]);b.children[1].textContent=(s.judul?s.judul+' · ':'')+(s.narasi||'Adegan '+(i+1));el.appendChild(b)});$('scn').textContent='('+FILM.scenes.length+')';$('fs').max=FILM.scenes.length;SCA=-1}
+$('scl').onclick=e=>{const b=e.target.closest('.sc');if(!b)return;run(+b.dataset.i);scrollTo({top:0,behavior:'smooth'})};
+function renderInfo(){const m=ytMeta(true),sn=m.snippet,pub=m.status.publishAt,tg=(sn.description.match(/#[^\s#<>]+/g)||[]).slice(0,3);
+ $('hash').textContent=tg.join(' ');$('vt').textContent=sn.title;
+ $('vs').textContent=fm(TOT)+' · '+FILM.scenes.length+' adegan · '+(pub?'Tayang '+fmtDT(new Date(pub)):({private:'Pribadi',unlisted:'Tidak publik',public:'Publik'})[m.status.privacyStatus]);
+ $('vd').textContent=sn.description+(sn.tags.length?'\n\nTag: '+sn.tags.join(', '):'');
+ const sh=$('sch');sh.hidden=!pub;if(pub)sh.textContent='Dijadwalkan tayang: '+fmtLong(new Date(pub));
+ const nm=CFG.chn||'Studio Film';$('cn').textContent=nm;$('avl').textContent=nm.trim().charAt(0).toUpperCase()||'S';document.title=sn.title+' · Studio Film'}
+$('vdb').onclick=()=>{const d=$('vd');d.hidden=!d.hidden;$('vdb').querySelector('b').textContent=d.hidden?'…selengkapnya':' sembunyikan'};
+$('chi').value=CFG.chn||'';$('chi').onchange=()=>{CFG.chn=$('chi').value.trim();svCfg();renderInfo()};
+/* ----- Gemini: judul, deskripsi, tag ----- */
+const SYSM='Kamu pengelola kanal YouTube berbahasa Indonesia yang ahli SEO. Tulis metadata untuk film animasi stikman berdurasi panjang untuk penonton umum/keluarga di Indonesia. Tentukan dulu satu kata kunci utama (frasa yang realistis dicari orang, mis. "sejarah penemuan api") dan 2-3 kata kunci pendukung. Judul: maksimal 60 karakter agar tidak terpotong, kata kunci utama di paruh depan, memancing rasa ingin tahu tetapi jujur sesuai isi (tanpa clickbait menyesatkan, tanpa huruf kapital semua, tanpa tanda < atau >). Deskripsi: dua baris pertama (maksimal 150 karakter) memuat kata kunci utama dan menjadi kalimat pembuka yang menarik karena itulah yang terlihat di hasil pencarian; lanjutkan 1-2 paragraf ringkasan tanpa membocorkan akhir cerita, memakai kata kunci utama dan pendukung secara alami (jangan dijejalkan); satu kalimat ajakan menonton, berlangganan, dan berkomentar; jika kisah berlatar sejarah atau peristiwa nyata, satu kalimat bahwa ini dramatisasi fiksi dan bukan fakta pasti; baris terakhir 3 sampai 5 hashtag (hashtag pertama = kata kunci utama tanpa spasi). Jangan menulis penanda waktu/bab (ditambahkan otomatis). Tag: 15 sampai 25 item, tag pertama = kata kunci utama persis, lalu campuran frasa panjang dan pendek, bahasa Indonesia dengan sedikit Inggris, tanpa tanda #, relevan, tidak menyesatkan. teks_thumbnail: maksimal 4 kata huruf kapital yang melengkapi judul (bukan menyalinnya), atau kosong jika tidak perlu. Kategori YouTube: 1 Film & Animasi, 27 Pendidikan, 24 Hiburan, 22 Orang & Blog.';
+function metaCtx(){const sc=FILM.scenes,id=STO.ide||{},n=sc.length,step=Math.max(1,Math.floor(n/12)),pk=[];for(let i=0;i<n;i+=step)pk.push(i);if(pk[pk.length-1]!=n-1)pk.push(n-1);
+ const ring=pk.map(i=>'['+fm(ST[i]||0)+'] '+(sc[i].narasi||'').slice(0,230)).join('\n'),cast=[...new Set(sc.flatMap(s=>(s.actors||[]).map(a=>a.id)))].slice(0,10).join(', '),bab=sc.map((s,i)=>s.judul?fm(ST[i])+' '+s.judul:'').filter(Boolean).join('; ');
+ return'Judul kerja: '+(FILM.judul||'-')+'\nLogline: '+(id.logline||'-')+'\nTema: '+(id.tema||'-')+'\nNada: '+(id.nada||'-')+'\nTokoh: '+(((id.tokoh||[]).map(t=>t.nama||t.id).join(', '))||cast)+'\nDurasi: '+fm(TOT)+' ('+n+' adegan)\nBab: '+(bab||'-')+'\nCuplikan narasi:\n'+ring}
+let METAB=false;
+async function genMeta(){if(METAB)return false;if(!CFG.ks.length){st('Isi Gemini API key di Setelan agar judul & deskripsi bisa dibuat otomatis.');return false}
+ METAB=true;$('gm').disabled=$('gm2').disabled=true;st('Gemini membuat judul, deskripsi, dan tag...');
+ try{const r=await gem(CFG.sm,SYSM,metaCtx()+'\n\nBalas JSON: {"kata_kunci":"","judul":"","deskripsi":"","tag":["..."],"teks_thumbnail":"","kategori":"1"}',true),t=cleanT(r.judul).slice(0,100),g=fitTags(Array.isArray(r.tag)?r.tag:String(r.tag||'').split(','));
+  let d=String(r.deskripsi||'').replace(/[<>]/g,'').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim().slice(0,4000);if(!t||!d)throw new Error('jawaban Gemini kurang lengkap');
+  if(!/#[^\s#]/.test(d)){const hs=g.slice(0,4).map(x=>'#'+x.replace(/[^\p{L}\p{N}]+/gu,'')).filter(x=>x.length>2);if(hs.length)d+='\n\n'+hs.join(' ')}
+  CFG.yt.t=t;CFG.yt.d=d;CFG.yt.g=g.join(', ');CFG.yt.kw=cleanT(r.kata_kunci).slice(0,60);CFG.yt.thx=cleanT(r.teks_thumbnail).split(/\s+/).slice(0,4).join(' ').slice(0,30);if(['1','27','24','22'].includes(String(r.kategori)))CFG.yt.k=String(r.kategori);CFG.yt.man=0;svCfg();ytFill();renderInfo();st('Judul, deskripsi, dan tag siap. Periksa di tab Upload, ubah bila perlu.');return true}
+ catch(e){st('Gagal membuat judul/deskripsi: '+(e.message||e));return false}finally{METAB=false;$('gm').disabled=$('gm2').disabled=false}}
+const autoMeta=()=>{if(CFG.ks.length&&!CFG.yt.man&&!busy)genMeta()};
+async function ensureMeta(){const c=CFG.yt;if((!c.t||!c.d||c.d===DEFD0)&&CFG.ks.length)await genMeta()}
+$('gm').onclick=$('gm2').onclick=()=>genMeta();
+/* ----- jadwal tayang ----- */
+const SYSS='Kamu analis jadwal tayang YouTube untuk penonton Indonesia. Pilih satu waktu tayang yang masuk akal: minimal 3 jam dari sekarang dan paling lambat 7 hari ke depan, memakai zona waktu pengguna, jam yang wajar (hindari 00.00-05.00), mempertimbangkan kebiasaan keluarga Indonesia menonton (sore sampai malam, dan siang atau sore di akhir pekan). Jangan mengarang angka statistik. Alasan cukup satu kalimat singkat.';
+const defSlot=()=>{const d=new Date();d.setHours(19,0,0,0);if(d.getTime()<Date.now()+3*36e5)d.setDate(d.getDate()+1);return d};
+async function genSchedule(){if(!CFG.ks.length){st('Isi Gemini API key di Setelan agar Gemini bisa memilih jam tayang.');return false}
+ $('ysa').disabled=true;st('Gemini memilih jam tayang...');
+ try{const now=new Date(),tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'',days=[];for(let i=0;i<=7;i++){const d=new Date(now.getTime()+i*864e5);days.push(d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+' ('+d.toLocaleDateString('id-ID',{weekday:'long'})+')')}
+  const m=ytMeta(true).snippet;let slot=null,why='';
+  try{const r=await gem(CFG.sm,SYSS,'Sekarang: '+now.toLocaleString('id-ID',{dateStyle:'full',timeStyle:'short'})+' (zona waktu '+tz+').\nTanggal yang boleh dipilih: '+days.join(', ')+'.\nVideo: '+m.title+' | film animasi stikman berbahasa Indonesia | durasi '+fm(TOT)+' | '+m.description.split('\n')[0].slice(0,150)+'\nBalas JSON: {"tanggal":"YYYY-MM-DD","jam":"HH:mm","alasan":""}',true);
+   if(/^\d{4}-\d\d-\d\d$/.test(r.tanggal||'')&&/^\d\d:\d\d$/.test(r.jam||'')){const d=new Date(r.tanggal+'T'+r.jam);if(!isNaN(d)&&d.getTime()>=Date.now()+2.5*36e5&&d.getTime()<=Date.now()+8*864e5){slot=d;why=cleanT(r.alasan)}}}catch(e){if(e.status===401||e.status===403)throw e}
+  if(!slot){slot=defSlot();why='Gemini tidak memberi jam yang valid, dipakai jam santai keluarga (19.00).'}
+  if(CFG.yt.sm==='now')CFG.yt.sm='ai';CFG.yt.sd=toLoc(slot);CFG.yt.sa=why;svCfg();ytFill();renderInfo();st('Jam tayang: '+fmtLong(slot));return true}
+ catch(e){st('Gagal memilih jam: '+(e.message||e));return false}finally{$('ysa').disabled=false}}
+async function ensureSchedule(){if(!okSched(CFG.yt.sd)||CFG.yt.sd&&new Date(CFG.yt.sd).getTime()<Date.now()+15*60e3){if(!(await genSchedule()))throw new Error('Jam tayang belum valid.')}}
+function schUI(){const c=CFG.yt;$('ysm').value=c.sm||'now';$('ysw').hidden=c.sm==='now';$('ysd').value=c.sd||'';$('ysd').min=toLoc(new Date());$('ytz').textContent=Intl.DateTimeFormat().resolvedOptions().timeZone||'waktu lokal';
+ $('ysn').textContent=c.sm==='now'?'':'Video diunggah sebagai Pribadi lalu otomatis tayang (Publik) pada jam tersebut.'+(c.sa&&c.sm==='ai'?' Alasan Gemini: '+c.sa:'');
+ $('yb').textContent=c.sm==='now'?'Upload ke YouTube':'Jadwalkan di YouTube';$('yp').disabled=c.sm!=='now'}
+$('ysm').onchange=async()=>{CFG.yt.sm=$('ysm').value;if(CFG.yt.sm!=='now'&&!okSched(CFG.yt.sd)){CFG.yt.sa='';if(CFG.yt.sm==='ai'&&CFG.ks.length)await genSchedule();else CFG.yt.sd=toLoc(defSlot())}svCfg();schUI();renderInfo()};
+$('ysd').onchange=()=>{CFG.yt.sd=$('ysd').value;CFG.yt.sa='';svCfg();schUI();renderInfo()};
+$('ysa').onclick=()=>genSchedule();
+['yt','yd','yg'].forEach(i=>$(i).addEventListener('input',()=>{CFG.yt.man=1;ytSave();renderInfo()}));
+['yt','yd','yg','yp','ych'].forEach(i=>$(i).addEventListener('change',()=>{renderInfo();updCnt()}));$('yt').addEventListener('input',updCnt);$('yd').addEventListener('input',updCnt);$('yg').addEventListener('input',updCnt);
+async function copyMeta(q){const m=ytMeta(true).snippet,tx=m.title+'\n\n'+m.description+'\n\nTag: '+m.tags.join(', ');try{await navigator.clipboard.writeText(tx);st('Judul, deskripsi, dan tag disalin.');return true}catch(e){if(!q)st('Tidak bisa menyalin otomatis. Salin manual dari kolom di tab Upload.');return false}}
+$('cpm').onclick=()=>copyMeta();
+$('shb').onclick=async()=>{const m=ytMeta(true).snippet;try{if(navigator.share)await navigator.share({title:m.title,text:m.title+'\n\n'+m.description.split('\n').slice(0,3).join('\n')});else await copyMeta()}catch(e){}};
+$('yb2').onclick=()=>showTab('up');
+UIR=1;ytFill();schUI();renderScenes();renderInfo();
+
+/* ---------- v10: thumbnail AI (pilih adegan terbaik + teks) ---------- */
+const THM={data:'',txt:'',i:-1,t:0,side:'kiri',color:'kuning',why:'',key:'',on:false};
+CFG.th=Object.assign({use:1,tx:1},CFG.th||{});
+const thKey=()=>(FILM.judul||'')+'|'+FILM.scenes.length+'|'+((FILM.scenes[0]||{}).narasi||'').length+'|'+((FILM.scenes[FILM.scenes.length-1]||{}).narasi||'').length;
+/* potret adegan: render bersih (tanpa subtitle/judul/fade), kamera 'dekat' agar karakter besar */
+async function grabFrames(list,W,H){if(busy)throw new Error('Sedang sibuk.');if(play&&!paused)await tog();const W0=RW,H0=RH,res=[];busy=true;NOUI=1;PV=null;
+ try{setRes(1280,720);for(const it of list){CAMO=it.cam||null;cur=-1;lastT=-1;frame(it.t,it.t);const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(cv,0,0,W,H);res.push(c);await new Promise(z=>setTimeout(z,0))}}
+ finally{NOUI=0;CAMO=null;setRes(W0,H0);busy=false;cur=-1;lastT=-1;dirty=1}return res}
+const sceneT=i=>ST[i]+D[i]*.55;
+function pickScenes(n){const N=FILM.scenes.length,ok=[];FILM.scenes.forEach((s,i)=>{if((s.actors||[]).length)ok.push(i)});const pool=ok.length>=n?ok:FILM.scenes.map((_,i)=>i),o=new Set();for(let k=0;k<n;k++)o.add(pool[Math.min(pool.length-1,Math.floor((k+.5)/n*pool.length))]);return[...o]}
+async function gemV(model,sys,parts){const j=await withKey('ks',async key=>{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts}],generationConfig:{temperature:.5,responseMimeType:'application/json'}})});
+  const x=await r.json().catch(()=>({}));if(!r.ok){const e=new Error((x.error&&x.error.message)||'HTTP '+r.status);e.status=r.status;throw e}return x});
+ const txt=((((j.candidates||[])[0]||{}).content||{}).parts||[]).map(p=>p.text||'').join('');if(!txt)throw new Error('jawaban kosong');return parseJ(txt)}
+const SYST='Kamu ahli thumbnail YouTube untuk penonton Indonesia. Dari beberapa gambar adegan film animasi stikman, pilih SATU yang paling cocok menjadi thumbnail. Kriteria: satu subjek utama yang jelas dan besar dengan ekspresi atau gerak yang terbaca, momen dramatis atau lucu yang memancing rasa ingin tahu, kontras dan terang yang baik, latar tidak ramai, tidak membocorkan akhir cerita, selaras dengan judul dan tidak menyesatkan. Hindari gambar gelap, buram, atau yang karakternya kecil. Jika teks membantu, tulis teks pendek: maksimal 4 kata (lebih baik 2-3), huruf kapital, bahasa Indonesia, melengkapi judul dan bukan menyalinnya, terbaca di layar ponsel; kosongkan jika gambar sudah kuat. Tentukan sisi gambar yang paling kosong untuk teks agar tidak menutupi subjek.';
+const THC={kuning:'#ffe600',putih:'#ffffff',merah:'#ff3b30',cyan:'#2de2ff'};
+function wrapFit(x,text,maxW,maxLines){let fs=170,L;for(;fs>=54;fs-=6){x.font='900 '+fs+'px Impact,"Arial Black","Segoe UI Black",system-ui,sans-serif';const ws=text.split(/\s+/);L=[];let c='';ws.forEach(w=>{const t=c?c+' '+w:w;if(x.measureText(t).width>maxW&&c){L.push(c);c=w}else c=t});L.push(c);if(L.length<=maxLines&&L.every(l=>x.measureText(l).width<=maxW))break}return{fs,L}}
+function composeThumb(src,text,side,color){const c=document.createElement('canvas');c.width=1280;c.height=720;const x=c.getContext('2d');
+ try{x.filter='contrast(1.1) saturate(1.22) brightness(1.04)'}catch(e){}x.drawImage(src,0,0,1280,720);try{x.filter='none'}catch(e){}
+ const v=x.createRadialGradient(640,360,280,640,360,830);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.36)');x.fillStyle=v;x.fillRect(0,0,1280,720);
+ text=cleanT(text).toUpperCase();
+ if(text){side=['kiri','kanan','atas','bawah'].includes(side)?side:'kiri';const horiz=side=='atas'||side=='bawah',maxW=horiz?1100:600,{fs,L}=wrapFit(x,text,maxW,horiz?2:3),lh=fs*1.04,h=L.length*lh;
+  let g=null;if(side=='kiri'){g=x.createLinearGradient(0,0,760,0);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}else if(side=='kanan'){g=x.createLinearGradient(1280,0,520,0);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}else if(side=='atas'){g=x.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}else{g=x.createLinearGradient(0,720,0,400);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)')}
+  x.fillStyle=g;x.fillRect(0,0,1280,720);
+  x.textBaseline='middle';x.lineJoin='round';x.miterLimit=2;x.lineWidth=fs*.15;x.strokeStyle='#000';x.fillStyle=THC[color]||THC.kuning;x.shadowColor='rgba(0,0,0,.6)';x.shadowBlur=18;
+  const al=side=='kiri'?'left':side=='kanan'?'right':'center',px=side=='kiri'?56:side=='kanan'?1224:640,y0=side=='atas'?44+lh/2:side=='bawah'?720-110-h+lh/2:(720-h)/2+lh/2;x.textAlign=al;
+  L.forEach((l,k)=>{const y=y0+k*lh;x.strokeText(l,px,y);x.shadowBlur=0;x.fillText(l,px,y);x.shadowBlur=18})}
+ return c}
+async function toJpeg(c){for(let q=.9;q>=.5;q-=.1){const b=await new Promise(z=>c.toBlob(z,'image/jpeg',q));if(b&&b.size<1.9*1048576){return await new Promise(z=>{const r=new FileReader();r.onload=()=>z(r.result);r.readAsDataURL(b)})}}throw new Error('gambar terlalu besar')}
+function showThumb(){const im=$('thi');if(!THM.data){im.style.display='none';$('thn').textContent='';return}im.src=THM.data;im.style.display='block';$('tht').value=THM.txt||'';$('ths').value=THM.i>=0?THM.i+1:'';
+ $('thn').textContent='Adegan '+(THM.i+1)+' ('+fm(THM.t)+')'+(THM.why?' · '+THM.why:'');$('ct4').textContent=($('tht').value.length)+'/40'}
+function saveThumb(){dbs('voice','readwrite',s=>s.put({k:'thumb',data:THM.data,txt:THM.txt,i:THM.i,t:THM.t,side:THM.side,color:THM.color,why:THM.why,key:THM.key}))}
+let THB=false;
+async function genThumb(opt){opt=opt||{};if(THB||busy)return false;THB=true;$('gth').disabled=$('thr').disabled=true;
+ try{const N=FILM.scenes.length,man=+$('ths').value>=1;let idx,txt='',side=THM.side||'kiri',color=THM.color||'kuning',why='';
+  const hint=CFG.th.tx?(CFG.yt.thx||''):'';
+  if(opt.keep){idx=man?Math.min(N,+$('ths').value)-1:Math.max(0,THM.i);txt=$('tht').value.trim();why=THM.why}
+  else if(man){idx=Math.min(N,+$('ths').value)-1;txt=CFG.th.tx?($('tht').value.trim()||hint):'';why='adegan dipilih sendiri'}
+  else if(CFG.ks.length){st('Memotret adegan-adegan film...');const ids=pickScenes(10),fr=await grabFrames(ids.map(i=>({i,t:sceneT(i),cam:'dekat'})),640,360);
+   const m=ytMeta(true).snippet,parts=[{text:'Judul video: '+m.title+'\nKata kunci: '+(CFG.yt.kw||'-')+'\nTag: '+m.tags.slice(0,8).join(', ')+'\nUsulan teks: '+(hint||'-')+'\nBoleh menambah teks: '+(CFG.th.tx?'ya':'tidak')+'\n\nBerikut '+fr.length+' gambar kandidat:'}];
+   fr.forEach((c,k)=>{const i=ids[k];parts.push({text:'Gambar '+(k+1)+' (adegan '+(i+1)+', menit '+fm(sceneT(i))+'): '+(FILM.scenes[i].narasi||'').slice(0,170)});parts.push({inlineData:{mimeType:'image/jpeg',data:c.toDataURL('image/jpeg',.72).split(',')[1]}})});
+   parts.push({text:'Balas JSON: {"pilihan":1,"alasan":"satu kalimat","teks":"","sisi":"kiri|kanan|atas|bawah","warna":"kuning|putih|merah|cyan"}'});
+   st('Gemini memilih adegan terbaik untuk thumbnail...');let r={};try{r=await gemV(CFG.sm,SYST,parts)}catch(e){if([401,403].includes(e.status))throw e}
+   const pk=Math.min(ids.length,Math.max(1,Math.round(+r.pilihan)||1));idx=ids[pk-1];why=cleanT(r.alasan);txt=CFG.th.tx?cleanT(r.teks||hint):'';side=r.sisi||side;color=r.warna||color}
+  else{idx=pickScenes(3)[1]||0;txt=CFG.th.tx?hint:'';why='tanpa API key: adegan dipilih otomatis'}
+  txt=cleanT(txt).split(/\s+/).slice(0,4).join(' ').slice(0,40);
+  st('Menyusun thumbnail...');const t=sceneT(idx),[fc]=await grabFrames([{i:idx,t,cam:'dekat'}],1280,720),data=await toJpeg(composeThumb(fc,txt,side,color));
+  Object.assign(THM,{data,txt,i:idx,t,side,color,why,key:thKey()});showThumb();saveThumb();st('Thumbnail siap. Ubah teks atau adegan lalu tekan "Terapkan", atau buat ulang dengan AI.');return true}
+ catch(e){st('Gagal membuat thumbnail: '+(e.message||e));return false}finally{THB=false;$('gth').disabled=$('thr').disabled=false}}
+async function ensureThumb(){if(!CFG.th.use||(THM.data&&THM.key===thKey()))return;await genThumb()}
+async function ytThumb(id,tok){const b=await(await fetch(THM.data)).blob();if(b.size>2*1048576)throw new Error('ukuran lebih dari 2 MB');
+ const x=await ytReq('POST','https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId='+encodeURIComponent(id)+'&uploadType=media',{h:{'Authorization':'Bearer '+tok,'Content-Type':'image/jpeg'},b});
+ if(x.status!==200)throw new Error(apiErr(x)+' (thumbnail kustom butuh kanal yang sudah terverifikasi)')}
+$('gth').onclick=()=>genThumb();$('thr').onclick=()=>{if(!THM.data){genThumb();return}genThumb({keep:1})};
+$('thd').onclick=async()=>{if(!THM.data){st('Belum ada thumbnail.');return}saveF(await(await fetch(THM.data)).blob(),'thumbnail.jpg')};
+$('thu').checked=!!CFG.th.use;$('thu').onchange=()=>{CFG.th.use=$('thu').checked?1:0;svCfg()};$('thx').checked=!!CFG.th.tx;$('thx').onchange=()=>{CFG.th.tx=$('thx').checked?1:0;svCfg()};
+$('tht').addEventListener('input',()=>{$('ct4').textContent=$('tht').value.length+'/40'});
+dbs('voice','readonly',s=>s.get('thumb')).then(h=>{if(h&&h.data){Object.assign(THM,{data:h.data,txt:h.txt||'',i:h.i,t:h.t||0,side:h.side||'kiri',color:h.color||'kuning',why:h.why||'',key:h.key||''});showThumb()}}).catch(()=>{});
+
+/* otomatis penuh: judul + deskripsi + tag, lalu thumbnail, begitu film diterapkan/diimpor */
+let AAB=false;
+async function autoAll(){if(AAB||busy||!CFG.ks.length)return;AAB=true;
+ try{if(!CFG.yt.man)await genMeta();
+  if(CFG.th.use&&(!THM.data||THM.key!==thKey()))await genThumb();
+  st('Judul, deskripsi, tag, dan thumbnail otomatis siap. Periksa di tab Upload.')}
+ catch(e){st('Otomatis dihentikan: '+(e.message||e))}finally{AAB=false}}
 </script></body></html>
